@@ -70,65 +70,65 @@
         }
     </style>
 </head>
-<body class="flex flex-col h-screen w-screen relative font-sans">
+<body class="absolute inset-0 overflow-hidden flex flex-col bg-slate-900 font-sans text-white select-none m-0 p-0">
     <canvas id="confetti-canvas"></canvas>
 
     <!-- Macro Anchor (Header) -->
-    <header id="macro-anchor" class="w-full flex justify-between items-center px-[4vw] py-[3vh] bg-slate-900 border-b-4 border-slate-700 shadow-2xl z-10 transition-colors duration-1000">
+    <header id="macro-anchor" class="w-full flex justify-between items-center px-[4vmin] py-[2vmin] bg-slate-900 border-b-4 border-slate-700 shadow-2xl z-10 transition-colors duration-1000 shrink-0">
         <div class="flex flex-col">
-            <span class="text-[2vw] text-slate-400 font-bold uppercase tracking-widest">Current Time</span>
-            <span id="current-time-display" class="text-[5vw] font-black leading-none tracking-tighter">--:--</span>
+            <span class="text-[2vmin] text-slate-400 font-bold uppercase tracking-widest">Current Time</span>
+            <span id="current-time-display" class="text-[6vmin] font-black leading-none tracking-tighter">--:--</span>
         </div>
         
         <!-- Deficit indicator -->
-        <div id="deficit-indicator" class="hidden bg-red-600 px-[2.5vw] py-[1.5vh] rounded-3xl animate-pulse shadow-[0_0_30px_rgba(239,68,68,0.6)]">
-            <span id="deficit-text" class="text-[3vw] font-black text-white tracking-wide">Behind Schedule</span>
+        <div id="deficit-indicator" class="hidden bg-red-600 px-[3vmin] py-[1.5vmin] rounded-3xl animate-pulse shadow-[0_0_30px_rgba(239,68,68,0.6)] max-w-[40%] text-center">
+            <span id="deficit-text" class="text-[3.5vmin] font-black text-white tracking-wide">Behind Schedule</span>
         </div>
 
         <div class="flex flex-col text-right">
-            <span class="text-[2vw] text-slate-400 font-bold uppercase tracking-widest">Time to Leave House</span>
-            <span id="macro-countdown-display" class="text-[5vw] font-black leading-none tracking-tighter text-blue-400 drop-shadow-md">--:--</span>
+            <span class="text-[2vmin] text-slate-400 font-bold uppercase tracking-widest">Time to Leave House</span>
+            <span id="macro-countdown-display" class="text-[6vmin] font-black leading-none tracking-tighter text-blue-400 drop-shadow-md">--:--</span>
         </div>
     </header>
 
     <!-- Main Content Area (Single Task Focus) -->
-    <main class="flex-grow flex flex-col items-center justify-center relative w-full z-10 px-[5vw]">
+    <main class="flex-grow flex flex-col items-center justify-evenly relative w-full z-10 px-[4vmin] py-[2vmin]">
         
         <div id="pre-start-container" class="flex flex-col items-center w-full">
-            <h1 class="text-[6vw] font-black text-center mb-[4vh] drop-shadow-xl text-white tracking-tight">Morning Routine</h1>
-            <h2 id="target-start-time" class="text-[3vw] text-slate-300 mb-[10vh] font-bold">Target Start: --:--</h2>
-            <button id="start-btn" class="bg-blue-600 text-white font-black text-[4vw] px-[6vw] py-[3vh] rounded-full transition-all duration-300">
+            <h1 class="text-[8vmin] font-black text-center mb-[4vmin] drop-shadow-xl text-white tracking-tight">Morning Routine</h1>
+            <h2 id="target-start-time" class="text-[4vmin] text-slate-300 mb-[10vmin] font-bold">Target Start: --:--</h2>
+            <button id="start-btn" class="bg-blue-600 text-white font-black text-[5vmin] px-[8vmin] py-[3vmin] rounded-full transition-all duration-300">
                 START ROUTINE
             </button>
         </div>
 
-        <div id="task-container" class="hidden flex-col items-center justify-evenly w-full h-full relative py-[2vh]">
+        <div id="task-container" class="hidden flex-col items-center justify-evenly w-full h-full relative">
             
-            <h2 id="current-task-title" class="text-[5vw] font-black text-center leading-tight w-[90vw] mx-auto drop-shadow-2xl tracking-tight text-white m-0">
+            <h2 id="current-task-title" class="text-[7vmin] font-black text-center leading-tight w-[90%] mx-auto drop-shadow-2xl tracking-tight text-white m-0">
                 Loading Task...
             </h2>
 
             <!-- SVG Timer Ring -->
             <div class="relative flex items-center justify-center">
-                <svg class="progress-ring w-[35vw] h-[35vw] max-w-[45vh] max-h-[45vh]" viewBox="0 0 120 120">
+                <svg class="progress-ring w-[45vmin] h-[45vmin]" viewBox="0 0 120 120">
                     <circle class="text-slate-800" stroke-width="8" stroke="currentColor" fill="transparent" r="54" cx="60" cy="60"/>
                     <circle id="task-progress-ring" class="progress-ring__circle text-calmGreen drop-shadow-[0_0_15px_rgba(34,197,94,0.5)]" stroke-width="8" stroke-dasharray="339.292" stroke-dashoffset="0" stroke-linecap="round" stroke="currentColor" fill="transparent" r="54" cx="60" cy="60"/>
                 </svg>
-                <div class="absolute flex flex-col items-center justify-center">
-                    <span id="task-countdown" class="text-[9vw] font-black font-mono leading-none tracking-tighter drop-shadow-2xl text-white">--:--</span>
-                    <span id="task-duration-label" class="text-[2.5vw] text-slate-400 font-bold mt-2">/ --:--</span>
+                <div class="absolute flex flex-col items-center justify-center mt-[1vmin]">
+                    <span id="task-countdown" class="text-[12vmin] font-black font-mono leading-none tracking-tighter drop-shadow-2xl text-white">--:--</span>
+                    <span id="task-duration-label" class="text-[3vmin] text-slate-400 font-bold mt-1">/ --:--</span>
                 </div>
             </div>
 
             <!-- Focused Action Button -->
-            <button id="action-btn" class="bg-slate-700 text-white font-black text-[3vw] px-[6vw] py-[2.5vh] rounded-[2vw] transition-all duration-300 shadow-2xl tracking-wide">
+            <button id="action-btn" class="bg-slate-700 text-white font-black text-[4.5vmin] px-[8vmin] py-[2.5vmin] rounded-[3vmin] transition-all duration-300 shadow-2xl tracking-wide shrink-0">
                 COMPLETE TASK
             </button>
         </div>
         
         <div id="completion-container" class="hidden flex-col items-center justify-center w-full h-full">
-            <h1 class="text-[8vw] font-black text-center mb-[4vh] text-calmGreen drop-shadow-[0_0_40px_rgba(34,197,94,0.8)] tracking-tighter">ROUTINE COMPLETE</h1>
-            <h2 class="text-[5vw] text-white font-bold drop-shadow-xl">Time to leave!</h2>
+            <h1 class="text-[10vmin] font-black text-center mb-[4vmin] text-calmGreen drop-shadow-[0_0_40px_rgba(34,197,94,0.8)] tracking-tighter">ROUTINE COMPLETE</h1>
+            <h2 class="text-[6vmin] text-white font-bold drop-shadow-xl">Time to leave!</h2>
         </div>
         
     </main>
