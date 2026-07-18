@@ -1,6 +1,6 @@
 // --- STATE & CONFIG ---
-const STORAGE_KEY = 'morning_routine_state';
-const AppState = {
+var STORAGE_KEY = 'morning_routine_state';
+var AppState = {
     settings: null,
     tasks: [],
     currentTaskIndex: 0,
@@ -16,10 +16,12 @@ const AppState = {
     speechEnabled: true,
     hasAnnouncedHalfway: false,
     hasAnnouncedOneMin: false,
-    tenMinWarning: false
+    tenMinWarning: false,
+    macroClockInterval: null,
+    focusedElementId: 'start-btn' // Spatial Navigation Tracking
 };
 
-const FallbackData = {
+var FallbackData = {
     "settings": {
         "departureTime": "07:15",
         "defaultBufferMinutes": 2,
@@ -33,20 +35,52 @@ const FallbackData = {
     ]
 };
 
+// --- DOM CACHING ---
+var DOM = {};
+
+function cacheDOM() {
+    DOM.preStartContainer = document.getElementById('pre-start-container');
+    DOM.taskContainer = document.getElementById('task-container');
+    DOM.completionContainer = document.getElementById('completion-container');
+    
+    DOM.targetStartTime = document.getElementById('target-start-time');
+    DOM.startBtn = document.getElementById('start-btn');
+    DOM.actionBtn = document.getElementById('action-btn');
+    
+    DOM.currentTaskTitle = document.getElementById('current-task-title');
+    DOM.taskCountdown = document.getElementById('task-countdown');
+    DOM.taskDurationLabel = document.getElementById('task-duration-label');
+    DOM.taskProgressRing = document.getElementById('task-progress-ring');
+    
+    DOM.currentTimeDisplay = document.getElementById('current-time-display');
+    DOM.macroCountdownDisplay = document.getElementById('macro-countdown-display');
+    DOM.deficitIndicator = document.getElementById('deficit-indicator');
+    DOM.deficitText = document.getElementById('deficit-text');
+    
+    DOM.confettiCanvas = document.getElementById('confetti-canvas');
+}
+
 // --- INITIALIZATION ---
 document.addEventListener('DOMContentLoaded', init);
 
-async function init() {
-    let data;
-    try {
-        const res = await fetch('routine.json');
-        if (!res.ok) throw new Error("JSON not found");
-        data = await res.json();
-    } catch(e) {
-        console.warn("Using fallback routine data", e);
-        data = FallbackData;
-    }
+function init() {
+    cacheDOM();
     
+    fetch('routine.json')
+        .then(function(res) {
+            if (!res.ok) throw new Error("JSON not found");
+            return res.json();
+        })
+        .then(function(data) {
+            setupApp(data);
+        })
+        .catch(function(e) {
+            console.warn("Using fallback routine data", e);
+            setupApp(FallbackData);
+        });
+}
+
+function setupApp(data) {
     if (!data.settings || !data.tasks) data = FallbackData;
     
     AppState.settings = data.settings;
@@ -65,9 +99,9 @@ async function init() {
     if (AppState.isRoutineActive) {
         showTaskView();
         if (AppState.worker) AppState.worker.postMessage({command: 'START'});
-        const task = AppState.tasks[AppState.currentTaskIndex];
+        var task = AppState.tasks[AppState.currentTaskIndex];
         if (task) {
-            document.getElementById('current-task-title').innerText = task.title;
+            DOM.currentTaskTitle.innerText = task.title;
             updateTaskViewUI(Date.now());
         } else {
             finishRoutine();
@@ -76,14 +110,18 @@ async function init() {
         showPreStartView();
     }
     
-    setInterval(updateMacroClock, 1000);
+    if (AppState.macroClockInterval) clearInterval(AppState.macroClockInterval);
+    AppState.macroClockInterval = setInterval(updateMacroClock, 1000);
     updateMacroClock();
 }
 
 // --- TIME MATH ---
 function setupTimeEngine() {
-    const now = new Date();
-    const [depH, depM] = AppState.settings.departureTime.split(':').map(Number);
+    var now = new Date();
+    var depParts = AppState.settings.departureTime.split(':');
+    var depH = parseInt(depParts[0], 10);
+    var depM = parseInt(depParts[1], 10);
+    
     AppState.departureDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), depH, depM, 0);
     
     // If departure time was >12 hours ago, assume it's for tomorrow
@@ -91,13 +129,13 @@ function setupTimeEngine() {
         AppState.departureDate.setDate(AppState.departureDate.getDate() + 1);
     }
     
-    let totalMinutes = 0;
-    AppState.tasks.forEach((t, i) => {
-        totalMinutes += t.durationMinutes;
+    var totalMinutes = 0;
+    for (var i = 0; i < AppState.tasks.length; i++) {
+        totalMinutes += AppState.tasks[i].durationMinutes;
         if (i < AppState.tasks.length - 1) {
             totalMinutes += AppState.settings.defaultBufferMinutes;
         }
-    });
+    }
     
     AppState.targetStartDate = new Date(AppState.departureDate.getTime() - totalMinutes * 60000);
     window.speechSynthesis.getVoices(); // Init speech
@@ -105,7 +143,7 @@ function setupTimeEngine() {
 
 // --- STATE PERSISTENCE ---
 function saveState() {
-    const data = {
+    var data = {
         isRoutineActive: AppState.isRoutineActive,
         currentTaskIndex: AppState.currentTaskIndex,
         taskExpectedEndDate: AppState.taskExpectedEndDate ? AppState.taskExpectedEndDate.getTime() : null,
@@ -116,12 +154,12 @@ function saveState() {
 
 function restoreState() {
     try {
-        const raw = localStorage.getItem(STORAGE_KEY);
+        var raw = localStorage.getItem(STORAGE_KEY);
         if (!raw) return;
-        const data = JSON.parse(raw);
+        var data = JSON.parse(raw);
         
         if (data.isRoutineActive && data.taskExpectedEndDate) {
-            const expDate = new Date(data.taskExpectedEndDate);
+            var expDate = new Date(data.taskExpectedEndDate);
             if (Date.now() - expDate.getTime() > 12 * 3600 * 1000) {
                 localStorage.removeItem(STORAGE_KEY);
                 return;
@@ -139,24 +177,26 @@ function restoreState() {
 
 // --- VIEWS ---
 function showPreStartView() {
-    document.getElementById('pre-start-container').classList.remove('hidden');
-    document.getElementById('task-container').classList.add('hidden');
-    document.getElementById('task-container').classList.remove('flex');
-    document.getElementById('completion-container').classList.add('hidden');
+    DOM.preStartContainer.classList.remove('hidden');
+    DOM.taskContainer.classList.add('hidden');
+    DOM.taskContainer.classList.remove('flex');
+    DOM.completionContainer.classList.add('hidden');
     
-    const tH = AppState.targetStartDate.getHours().toString().padStart(2, '0');
-    const tM = AppState.targetStartDate.getMinutes().toString().padStart(2, '0');
-    document.getElementById('target-start-time').innerText = `Target Start: ${tH}:${tM}`;
+    var tH = AppState.targetStartDate.getHours().toString();
+    if (tH.length < 2) tH = '0' + tH;
+    var tM = AppState.targetStartDate.getMinutes().toString();
+    if (tM.length < 2) tM = '0' + tM;
     
-    document.getElementById('start-btn').focus();
+    DOM.targetStartTime.innerText = 'Target Start: ' + tH + ':' + tM;
+    setFocus('start-btn');
 }
 
 function showTaskView() {
-    document.getElementById('pre-start-container').classList.add('hidden');
-    document.getElementById('task-container').classList.remove('hidden');
-    document.getElementById('task-container').classList.add('flex');
-    document.getElementById('completion-container').classList.add('hidden');
-    document.getElementById('action-btn').focus();
+    DOM.preStartContainer.classList.add('hidden');
+    DOM.taskContainer.classList.remove('hidden');
+    DOM.taskContainer.classList.add('flex');
+    DOM.completionContainer.classList.add('hidden');
+    setFocus('action-btn');
 }
 
 function startRoutine() {
@@ -169,12 +209,12 @@ function startRoutine() {
         AppState.audioCtx.resume();
     }
     
-    const now = new Date();
+    var now = new Date();
     if (now > AppState.targetStartDate) {
-        const lateMins = Math.floor((now - AppState.targetStartDate) / 60000);
-        speak(`Warning. You are starting ${lateMins} minutes behind schedule. Focus!`);
+        var lateMins = Math.floor((now - AppState.targetStartDate) / 60000);
+        speak("Warning. You are starting " + lateMins + " minutes behind schedule. Focus!");
     } else {
-        speak(`Routine started on time. Let's go!`);
+        speak("Routine started on time. Let's go!");
     }
     
     showTaskView();
@@ -182,17 +222,17 @@ function startRoutine() {
 }
 
 function startCurrentTask() {
-    const task = AppState.tasks[AppState.currentTaskIndex];
+    var task = AppState.tasks[AppState.currentTaskIndex];
     if (!task) return finishRoutine();
     
     AppState.taskExpectedEndDate = new Date(Date.now() + task.durationMinutes * 60000);
     AppState.hasAnnouncedHalfway = false;
     AppState.hasAnnouncedOneMin = false;
     
-    document.getElementById('current-task-title').innerText = task.title;
+    DOM.currentTaskTitle.innerText = task.title;
     
     saveState();
-    speak(`Time to ${task.title}. You have ${task.durationMinutes} minutes.`);
+    speak("Time to " + task.title + ". You have " + task.durationMinutes + " minutes.");
     
     if (AppState.worker) AppState.worker.postMessage({command: 'START'});
     updateTaskViewUI(Date.now());
@@ -204,12 +244,11 @@ function finishRoutine() {
     
     if (AppState.worker) AppState.worker.postMessage({command: 'STOP'});
     
-    document.getElementById('task-container').classList.remove('flex');
-    document.getElementById('task-container').classList.add('hidden');
+    DOM.taskContainer.classList.remove('flex');
+    DOM.taskContainer.classList.add('hidden');
     
-    const comp = document.getElementById('completion-container');
-    comp.classList.remove('hidden');
-    comp.classList.add('flex');
+    DOM.completionContainer.classList.remove('hidden');
+    DOM.completionContainer.classList.add('flex');
     
     triggerConfetti();
     speak("Routine complete! Time to leave.");
@@ -224,35 +263,36 @@ function handleWorkerTick(e) {
 // --- UI UPDATES ---
 function updateTaskViewUI(nowTs) {
     if (AppState.currentTaskIndex >= AppState.tasks.length) return;
-    const task = AppState.tasks[AppState.currentTaskIndex];
+    var task = AppState.tasks[AppState.currentTaskIndex];
     
-    const remainingMs = AppState.taskExpectedEndDate.getTime() - nowTs;
-    const totalMs = task.durationMinutes * 60000;
+    var remainingMs = AppState.taskExpectedEndDate.getTime() - nowTs;
+    var totalMs = task.durationMinutes * 60000;
     
-    let displayMs = Math.max(0, remainingMs);
-    let secondsLeft = Math.ceil(displayMs / 1000);
+    var displayMs = Math.max(0, remainingMs);
+    var secondsLeft = Math.ceil(displayMs / 1000);
     
-    const m = Math.floor(secondsLeft / 60).toString().padStart(2, '0');
-    const s = (secondsLeft % 60).toString().padStart(2, '0');
+    var m = Math.floor(secondsLeft / 60).toString();
+    if (m.length < 2) m = '0' + m;
+    var s = (secondsLeft % 60).toString();
+    if (s.length < 2) s = '0' + s;
     
-    document.getElementById('task-countdown').innerText = `${m}:${s}`;
-    document.getElementById('task-duration-label').innerText = `/ ${task.durationMinutes}:00`;
+    DOM.taskCountdown.innerText = m + ':' + s;
+    DOM.taskDurationLabel.innerText = '/ ' + task.durationMinutes + ':00';
     
-    const circle = document.getElementById('task-progress-ring');
-    const circumference = 339.292;
-    const percent = Math.min(1, Math.max(0, displayMs / totalMs));
-    const offset = circumference - (percent * circumference);
+    var circle = DOM.taskProgressRing;
+    var circumference = 339.292;
+    var percent = Math.min(1, Math.max(0, displayMs / totalMs));
+    var offset = circumference - (percent * circumference);
     circle.style.strokeDashoffset = offset;
     
-    circle.classList.remove('text-calmGreen', 'text-transitionOrange', 'text-alertRed');
-    circle.classList.remove('drop-shadow-[0_0_15px_rgba(34,197,94,0.5)]', 'drop-shadow-[0_0_20px_rgba(249,115,22,0.6)]', 'drop-shadow-[0_0_30px_rgba(239,68,68,0.8)]');
+    circle.classList.remove('ring-calm', 'ring-warn', 'ring-alert');
     
     if (percent > 0.5) {
-        circle.classList.add('text-calmGreen', 'drop-shadow-[0_0_15px_rgba(34,197,94,0.5)]');
+        circle.classList.add('ring-calm');
     } else if (percent > 0.15) {
-        circle.classList.add('text-transitionOrange', 'drop-shadow-[0_0_20px_rgba(249,115,22,0.6)]');
+        circle.classList.add('ring-warn');
     } else {
-        circle.classList.add('text-alertRed', 'drop-shadow-[0_0_30px_rgba(239,68,68,0.8)]');
+        circle.classList.add('ring-alert');
     }
     
     // Auditory milestones
@@ -268,25 +308,27 @@ function updateTaskViewUI(nowTs) {
 }
 
 function updateMacroClock() {
-    const now = new Date();
+    var now = new Date();
     
-    const hh = now.getHours().toString().padStart(2, '0');
-    const mm = now.getMinutes().toString().padStart(2, '0');
-    document.getElementById('current-time-display').innerText = `${hh}:${mm}`;
+    var hh = now.getHours().toString();
+    if (hh.length < 2) hh = '0' + hh;
+    var mm = now.getMinutes().toString();
+    if (mm.length < 2) mm = '0' + mm;
+    DOM.currentTimeDisplay.innerText = hh + ':' + mm;
     
     if (!AppState.departureDate) return;
     
-    const timeToLeaveMs = AppState.departureDate.getTime() - now.getTime();
+    var timeToLeaveMs = AppState.departureDate.getTime() - now.getTime();
     
     if (timeToLeaveMs > 0) {
-        const leaveTotalSec = Math.floor(timeToLeaveMs / 1000);
-        const lH = Math.floor(leaveTotalSec / 3600);
-        const lM = Math.floor((leaveTotalSec % 3600) / 60);
+        var leaveTotalSec = Math.floor(timeToLeaveMs / 1000);
+        var lH = Math.floor(leaveTotalSec / 3600);
+        var lM = Math.floor((leaveTotalSec % 3600) / 60);
         
         if (lH > 0) {
-            document.getElementById('macro-countdown-display').innerText = `${lH}h ${lM}m`;
+            DOM.macroCountdownDisplay.innerText = lH + 'h ' + lM + 'm';
         } else {
-            document.getElementById('macro-countdown-display').innerText = `${lM} Mins`;
+            DOM.macroCountdownDisplay.innerText = lM + ' Mins';
         }
         
         if (lH === 0 && lM === 10 && !AppState.tenMinWarning) {
@@ -294,60 +336,72 @@ function updateMacroClock() {
             AppState.tenMinWarning = true;
         }
     } else {
-         document.getElementById('macro-countdown-display').innerText = "LEAVE NOW!";
-         document.getElementById('macro-countdown-display').classList.replace('text-blue-400', 'text-red-500');
+         DOM.macroCountdownDisplay.innerText = "LEAVE NOW!";
+         DOM.macroCountdownDisplay.classList.remove('text-blue-400');
+         DOM.macroCountdownDisplay.classList.add('text-red-500');
     }
     
     if (AppState.isRoutineActive && AppState.currentTaskIndex < AppState.tasks.length && AppState.taskExpectedEndDate) {
-        const currentTaskRemainingMs = Math.max(0, AppState.taskExpectedEndDate.getTime() - now.getTime());
+        var currentTaskRemainingMs = Math.max(0, AppState.taskExpectedEndDate.getTime() - now.getTime());
         
-        let futureMs = 0;
-        for (let i = AppState.currentTaskIndex + 1; i < AppState.tasks.length; i++) {
+        var futureMs = 0;
+        for (var i = AppState.currentTaskIndex + 1; i < AppState.tasks.length; i++) {
             futureMs += AppState.tasks[i].durationMinutes * 60000;
             if (i < AppState.tasks.length - 1) {
                 futureMs += AppState.settings.defaultBufferMinutes * 60000;
             }
         }
         
-        const expectedCompletionTime = now.getTime() + currentTaskRemainingMs + futureMs;
-        const deficitMs = expectedCompletionTime - AppState.departureDate.getTime();
-        
-        const deficitIndicator = document.getElementById('deficit-indicator');
-        const deficitText = document.getElementById('deficit-text');
+        var expectedCompletionTime = now.getTime() + currentTaskRemainingMs + futureMs;
+        var deficitMs = expectedCompletionTime - AppState.departureDate.getTime();
         
         if (deficitMs > 60000) {
-            const deficitMins = Math.ceil(deficitMs / 60000);
-            deficitText.innerText = `-${deficitMins} Mins Behind Schedule`;
-            deficitIndicator.classList.remove('hidden');
+            var deficitMins = Math.ceil(deficitMs / 60000);
+            DOM.deficitText.innerText = '-' + deficitMins + ' Mins Behind Schedule';
+            DOM.deficitIndicator.classList.remove('hidden');
         } else {
-            deficitIndicator.classList.add('hidden');
+            DOM.deficitIndicator.classList.add('hidden');
         }
     }
 }
 
 // --- REMOTE CONTROLS & UNDO LOGIC ---
 function setupRemoteControls() {
-    window.addEventListener('keydown', (e) => {
-        if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+    window.addEventListener('keydown', function(e) {
+        var key = e.keyCode || e.which;
+        // Keycodes for D-Pad navigation:
+        // Left: 37, Up: 38, Right: 39, Down: 40, Enter: 13
+        if (key === 37 || key === 38 || key === 39 || key === 40) {
+            e.preventDefault(); // Stop native scrolling/focus shifts
+            // Since this app has very few interactable buttons, focus is implicit.
+            // But we will ensure the correct button is active visually based on the state.
+            if (!AppState.isRoutineActive) {
+                setFocus('start-btn');
+            } else if (AppState.currentTaskIndex < AppState.tasks.length) {
+                setFocus('action-btn');
+            }
+        } else if (key === 13) {
             e.preventDefault();
-            focusActiveButton();
+            triggerFocusedElement();
         }
-    });
-    
-    document.getElementById('start-btn').addEventListener('click', () => {
-        startRoutine();
-    });
-    
-    document.getElementById('action-btn').addEventListener('click', () => {
-        onActionBtnClick();
     });
 }
 
-function focusActiveButton() {
-    if (!AppState.isRoutineActive) {
-        document.getElementById('start-btn').focus();
-    } else if (AppState.currentTaskIndex < AppState.tasks.length) {
-        document.getElementById('action-btn').focus();
+function setFocus(elementId) {
+    if (AppState.focusedElementId) {
+        var oldEl = document.getElementById(AppState.focusedElementId);
+        if (oldEl) oldEl.classList.remove('active-focus');
+    }
+    AppState.focusedElementId = elementId;
+    var newEl = document.getElementById(elementId);
+    if (newEl) newEl.classList.add('active-focus');
+}
+
+function triggerFocusedElement() {
+    if (AppState.focusedElementId === 'start-btn' && !AppState.isRoutineActive) {
+        startRoutine();
+    } else if (AppState.focusedElementId === 'action-btn' && AppState.isRoutineActive) {
+        onActionBtnClick();
     }
 }
 
@@ -363,14 +417,15 @@ function startUndoWindow() {
     AppState.undoPending = true;
     AppState.undoSecondsLeft = 4;
     
-    const btn = document.getElementById('action-btn');
-    btn.classList.add('undo-state');
-    btn.innerHTML = `UNDO NEXT TASK? (${AppState.undoSecondsLeft})`;
+    DOM.actionBtn.classList.add('undo-state');
+    DOM.actionBtn.innerHTML = 'UNDO NEXT TASK? (' + AppState.undoSecondsLeft + ')';
     
-    AppState.undoTimeout = setInterval(() => {
+    if (AppState.undoTimeout) clearInterval(AppState.undoTimeout);
+    
+    AppState.undoTimeout = setInterval(function() {
         AppState.undoSecondsLeft--;
         if (AppState.undoSecondsLeft > 0) {
-            btn.innerHTML = `UNDO NEXT TASK? (${AppState.undoSecondsLeft})`;
+            DOM.actionBtn.innerHTML = 'UNDO NEXT TASK? (' + AppState.undoSecondsLeft + ')';
         } else {
             commitTaskCompletion();
         }
@@ -379,11 +434,13 @@ function startUndoWindow() {
 
 function cancelUndo() {
     AppState.undoPending = false;
-    clearInterval(AppState.undoTimeout);
+    if (AppState.undoTimeout) {
+        clearInterval(AppState.undoTimeout);
+        AppState.undoTimeout = null;
+    }
     
-    const btn = document.getElementById('action-btn');
-    btn.classList.remove('undo-state');
-    btn.innerHTML = 'COMPLETE TASK';
+    DOM.actionBtn.classList.remove('undo-state');
+    DOM.actionBtn.innerHTML = 'COMPLETE TASK';
     
     // Immediately update UI to correct time
     updateTaskViewUI(Date.now());
@@ -391,11 +448,13 @@ function cancelUndo() {
 
 function commitTaskCompletion() {
     AppState.undoPending = false;
-    clearInterval(AppState.undoTimeout);
+    if (AppState.undoTimeout) {
+        clearInterval(AppState.undoTimeout);
+        AppState.undoTimeout = null;
+    }
     
-    const btn = document.getElementById('action-btn');
-    btn.classList.remove('undo-state');
-    btn.innerHTML = 'COMPLETE TASK';
+    DOM.actionBtn.classList.remove('undo-state');
+    DOM.actionBtn.innerHTML = 'COMPLETE TASK';
     
     if (!AppState.audioCtx) {
         AppState.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -411,15 +470,15 @@ function commitTaskCompletion() {
 // --- MEDIA & EFFECTS ---
 function speak(text) {
     if (!AppState.speechEnabled) return;
-    const utterance = new SpeechSynthesisUtterance(text);
+    var utterance = new SpeechSynthesisUtterance(text);
     window.speechSynthesis.speak(utterance);
 }
 
 function playChime() {
-    const ctx = AppState.audioCtx;
+    var ctx = AppState.audioCtx;
     if (!ctx) return;
-    const osc = ctx.createOscillator();
-    const gainNode = ctx.createGain();
+    var osc = ctx.createOscillator();
+    var gainNode = ctx.createGain();
     
     osc.type = 'sine';
     osc.connect(gainNode);
@@ -437,15 +496,15 @@ function playChime() {
 }
 
 function triggerConfetti() {
-    const canvas = document.getElementById('confetti-canvas');
-    const ctx = canvas.getContext('2d');
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
+    var canvas = DOM.confettiCanvas;
+    var ctx = canvas.getContext('2d');
+    canvas.width = 1920;
+    canvas.height = 1080;
     
-    const particles = [];
-    const colors = ['#22c55e', '#3b82f6', '#f59e0b', '#ec4899', '#a855f7'];
+    var particles = [];
+    var colors = ['#22c55e', '#3b82f6', '#f59e0b', '#ec4899', '#a855f7'];
     
-    for (let i = 0; i < 150; i++) {
+    for (var i = 0; i < 150; i++) {
         particles.push({
             x: canvas.width / 2,
             y: canvas.height / 2,
@@ -460,10 +519,11 @@ function triggerConfetti() {
     }
     
     function render() {
-        let active = false;
+        var active = false;
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         
-        particles.forEach(p => {
+        for (var j = 0; j < particles.length; j++) {
+            var p = particles[j];
             p.tiltAngle += p.tiltAngleInc;
             p.y += (Math.cos(p.tiltAngle) + p.dy + p.r / 2) / 2;
             p.x += Math.sin(p.tiltAngle) * 2;
@@ -477,7 +537,7 @@ function triggerConfetti() {
             ctx.moveTo(p.x + p.tilt + p.r, p.y);
             ctx.lineTo(p.x + p.tilt, p.y + p.tilt + p.r);
             ctx.stroke();
-        });
+        }
         
         if (active) {
             requestAnimationFrame(render);
