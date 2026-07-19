@@ -17,8 +17,7 @@ var AppState = {
     hasAnnouncedHalfway: false,
     hasAnnouncedOneMin: false,
     tenMinWarning: false,
-    macroClockInterval: null,
-    focusedElementId: 'start-btn' // Spatial Navigation Tracking
+    macroClockInterval: null
 };
 
 var FallbackData = {
@@ -188,7 +187,6 @@ function showPreStartView() {
     if (tM.length < 2) tM = '0' + tM;
     
     DOM.targetStartTime.innerText = 'Target Start: ' + tH + ':' + tM;
-    setFocus('start-btn');
 }
 
 function showTaskView() {
@@ -196,7 +194,6 @@ function showTaskView() {
     DOM.taskContainer.classList.remove('hidden');
     DOM.taskContainer.classList.add('flex');
     DOM.completionContainer.classList.add('hidden');
-    setFocus('action-btn');
 }
 
 function startRoutine() {
@@ -367,42 +364,31 @@ function updateMacroClock() {
 
 // --- REMOTE CONTROLS & UNDO LOGIC ---
 function setupRemoteControls() {
+    // Add click event listeners for TV virtual cursor and PC mouse
+    if (DOM.startBtn) {
+        DOM.startBtn.addEventListener('click', function(e) {
+            startRoutine();
+        });
+    }
+    
+    if (DOM.actionBtn) {
+        DOM.actionBtn.addEventListener('click', function(e) {
+            onActionBtnClick();
+        });
+    }
+
+    // Keep Enter key support as a fallback
     window.addEventListener('keydown', function(e) {
         var key = e.keyCode || e.which;
-        // Keycodes for D-Pad navigation:
-        // Left: 37, Up: 38, Right: 39, Down: 40, Enter: 13
-        if (key === 37 || key === 38 || key === 39 || key === 40) {
-            e.preventDefault(); // Stop native scrolling/focus shifts
-            // Since this app has very few interactable buttons, focus is implicit.
-            // But we will ensure the correct button is active visually based on the state.
-            if (!AppState.isRoutineActive) {
-                setFocus('start-btn');
-            } else if (AppState.currentTaskIndex < AppState.tasks.length) {
-                setFocus('action-btn');
-            }
-        } else if (key === 13) {
+        if (key === 13) {
             e.preventDefault();
-            triggerFocusedElement();
+            if (!AppState.isRoutineActive) {
+                startRoutine();
+            } else {
+                onActionBtnClick();
+            }
         }
     });
-}
-
-function setFocus(elementId) {
-    if (AppState.focusedElementId) {
-        var oldEl = document.getElementById(AppState.focusedElementId);
-        if (oldEl) oldEl.classList.remove('active-focus');
-    }
-    AppState.focusedElementId = elementId;
-    var newEl = document.getElementById(elementId);
-    if (newEl) newEl.classList.add('active-focus');
-}
-
-function triggerFocusedElement() {
-    if (AppState.focusedElementId === 'start-btn' && !AppState.isRoutineActive) {
-        startRoutine();
-    } else if (AppState.focusedElementId === 'action-btn' && AppState.isRoutineActive) {
-        onActionBtnClick();
-    }
 }
 
 function onActionBtnClick() {
