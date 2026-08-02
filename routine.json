@@ -5,11 +5,11 @@
     "enableVoiceSpeech": true
   },
   "tasks": [
-    { "id": 1, "title": "Aufwachen & Wasser drinken", "durationMinutes": 10 },
-    { "id": 2, "title": "Frühstück", "durationMinutes": 30 },
-    { "id": 3, "title": "Vitamine nehmen", "durationMinutes": 3 },
-    { "id": 4, "title": "Zähne putzen", "durationMinutes": 5 },
-    { "id": 5, "title": "Kuscheln", "durationMinutes": 3 },
-    { "id": 7, "title": "Schuhe und los", "durationMinutes": 5 }
+    { "id": 1, "title": "Aufwachen & Wasser drinken", "durationMinutes": 10, "icon": "assets/droplet.svg" },
+    { "id": 2, "title": "Frühstück", "durationMinutes": 30, "icon": "assets/utensils.svg" },
+    { "id": 3, "title": "Vitamine nehmen", "durationMinutes": 3, "icon": "assets/pill.svg" },
+    { "id": 4, "title": "Zähne putzen", "durationMinutes": 5, "icon": "assets/smile.svg" },
+    { "id": 5, "title": "Kuscheln", "durationMinutes": 3, "icon": "assets/heart.svg" },
+    { "id": 7, "title": "Schuhe und los", "durationMinutes": 5, "icon": "assets/footprints.svg" }
   ]
 }

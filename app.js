@@ -57,6 +57,9 @@ function cacheDOM() {
     DOM.deficitText = document.getElementById('deficit-text');
     
     DOM.confettiCanvas = document.getElementById('confetti-canvas');
+    
+    DOM.progressBarContainer = document.getElementById('progress-bar-container');
+    DOM.currentTaskIcon = document.getElementById('current-task-icon');
 }
 
 // --- INITIALIZATION ---
@@ -86,6 +89,7 @@ function setupApp(data) {
     AppState.tasks = data.tasks;
     AppState.speechEnabled = data.settings.enableVoiceSpeech;
     
+    buildProgressBar();
     setupTimeEngine();
     
     // Prepare Web Worker
@@ -112,6 +116,23 @@ function setupApp(data) {
     if (AppState.macroClockInterval) clearInterval(AppState.macroClockInterval);
     AppState.macroClockInterval = setInterval(updateMacroClock, 1000);
     updateMacroClock();
+}
+
+function buildProgressBar() {
+    if (!DOM.progressBarContainer) return;
+    DOM.progressBarContainer.innerHTML = '';
+    AppState.tasks.forEach(function(task, index) {
+        var stepDiv = document.createElement('div');
+        stepDiv.className = 'progress-step step-upcoming';
+        stepDiv.id = 'progress-step-' + index;
+        
+        var img = document.createElement('img');
+        img.className = 'step-icon';
+        img.src = task.icon || '';
+        
+        stepDiv.appendChild(img);
+        DOM.progressBarContainer.appendChild(stepDiv);
+    });
 }
 
 // --- TIME MATH ---
@@ -180,6 +201,10 @@ function showPreStartView() {
     DOM.taskContainer.classList.add('hidden');
     DOM.taskContainer.classList.remove('flex');
     DOM.completionContainer.classList.add('hidden');
+    if (DOM.progressBarContainer) {
+        DOM.progressBarContainer.classList.add('hidden');
+        DOM.progressBarContainer.classList.remove('flex');
+    }
     
     var tH = AppState.targetStartDate.getHours().toString();
     if (tH.length < 2) tH = '0' + tH;
@@ -194,6 +219,10 @@ function showTaskView() {
     DOM.taskContainer.classList.remove('hidden');
     DOM.taskContainer.classList.add('flex');
     DOM.completionContainer.classList.add('hidden');
+    if (DOM.progressBarContainer) {
+        DOM.progressBarContainer.classList.remove('hidden');
+        DOM.progressBarContainer.classList.add('flex');
+    }
 }
 
 function startRoutine() {
@@ -227,6 +256,29 @@ function startCurrentTask() {
     AppState.hasAnnouncedOneMin = false;
     
     DOM.currentTaskTitle.innerText = task.title;
+    if (DOM.currentTaskIcon) {
+        if (task.icon) {
+            DOM.currentTaskIcon.src = task.icon;
+            DOM.currentTaskIcon.classList.remove('hidden');
+        } else {
+            DOM.currentTaskIcon.classList.add('hidden');
+        }
+    }
+    
+    // Update progress bar UI
+    for (var i = 0; i < AppState.tasks.length; i++) {
+        var stepDiv = document.getElementById('progress-step-' + i);
+        if (!stepDiv) continue;
+        stepDiv.className = 'progress-step'; // reset
+        if (i < AppState.currentTaskIndex) {
+            stepDiv.classList.add('step-completed');
+        } else if (i === AppState.currentTaskIndex) {
+            stepDiv.classList.add('step-active');
+        } else {
+            stepDiv.classList.add('step-upcoming');
+        }
+    }
+
     
     saveState();
     speak("Time to " + task.title + ". You have " + task.durationMinutes + " minutes.");
@@ -243,6 +295,11 @@ function finishRoutine() {
     
     DOM.taskContainer.classList.remove('flex');
     DOM.taskContainer.classList.add('hidden');
+    
+    if (DOM.progressBarContainer) {
+        DOM.progressBarContainer.classList.add('hidden');
+        DOM.progressBarContainer.classList.remove('flex');
+    }
     
     DOM.completionContainer.classList.remove('hidden');
     DOM.completionContainer.classList.add('flex');

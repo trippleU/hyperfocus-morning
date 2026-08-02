@@ -215,6 +215,80 @@
         #task-countdown { font-size: 130px; margin: 0; }
         #task-duration-label { font-size: 32px; margin-top: 4px; }
         
+        /* Progress Bar */
+        .progress-bar-wrapper {
+            width: 90%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: relative;
+            margin-bottom: 40px;
+            z-index: 20;
+        }
+        .progress-bar-wrapper::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 0;
+            right: 0;
+            height: 6px;
+            background-color: #334155;
+            z-index: 1;
+            transform: translateY(-50%);
+        }
+        .progress-step {
+            position: relative;
+            z-index: 2;
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background-color: #1e293b;
+            border: 6px solid #334155;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: all 0.3s ease;
+        }
+        .step-icon {
+            width: 40px;
+            height: 40px;
+            filter: invert(1) opacity(0.5); /* Black SVG to dimmed white */
+            transition: all 0.3s ease;
+        }
+        
+        /* States */
+        .step-completed {
+            background-color: #22c55e;
+            border-color: #16a34a;
+        }
+        .step-completed .step-icon {
+            filter: invert(1) opacity(1);
+        }
+        
+        .step-active {
+            background-color: #3b82f6;
+            border-color: #93c5fd;
+            transform: scale(1.3);
+            box-shadow: 0 0 25px rgba(59, 130, 246, 0.8);
+        }
+        .step-active .step-icon {
+            filter: invert(1) opacity(1);
+            width: 50px;
+            height: 50px;
+        }
+        
+        .step-upcoming {
+            background-color: #0f172a;
+        }
+
+        /* Large Current Task Icon */
+        .current-task-icon-large {
+            width: 220px;
+            height: 220px;
+            filter: invert(1) drop-shadow(0px 10px 15px rgba(255,255,255,0.2));
+            margin-bottom: 30px;
+        }
+        
     </style>
 </head>
 <body>
@@ -249,7 +323,13 @@
             </button>
         </div>
 
+        <div id="progress-bar-container" class="progress-bar-wrapper hidden">
+            <!-- Dynamically populated by app.js -->
+        </div>
+
         <div id="task-container" class="container-box hidden">
+            
+            <img id="current-task-icon" class="current-task-icon-large hidden" src="" alt="Current Task">
             
             <h2 id="current-task-title" class="font-black text-center leading-tight tracking-tight m-0">
                 Loading Task...
