@@ -117,9 +117,22 @@
             align-items: center;
         }
         #task-container {
-            height: 100%;
+            width: 100%;
+            flex-grow: 1;
+            display: flex; /* overridden to flex row */
+            flex-direction: row;
+            align-items: center;
             justify-content: space-evenly;
             position: relative;
+        }
+        
+        .task-col {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            width: 50%;
+            height: 100%;
         }
         #completion-container {
             height: 100%;
@@ -133,6 +146,7 @@
             font-size: 75px;
             width: 90%;
             margin: 0 auto;
+            text-align: center;
         }
         
         .completion-title {
@@ -185,6 +199,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
+            margin-bottom: 40px;
         }
         .progress-ring {
             /* Set explicit dimensions for M56 parsing */
@@ -327,30 +342,35 @@
             <!-- Dynamically populated by app.js -->
         </div>
 
-        <div id="task-container" class="container-box hidden">
+        <div id="task-container" class="hidden">
             
-            <img id="current-task-icon" class="current-task-icon-large hidden" src="" alt="Current Task">
-            
-            <h2 id="current-task-title" class="font-black text-center leading-tight tracking-tight m-0">
-                Loading Task...
-            </h2>
-
-            <!-- SVG Timer Ring -->
-            <div class="ring-container">
-                <svg class="progress-ring" viewBox="0 0 120 120" width="486" height="486">
-                    <circle class="ring-bg" stroke-width="8" fill="transparent" r="54" cx="60" cy="60"/>
-                    <circle id="task-progress-ring" class="progress-ring__circle ring-calm" stroke-width="8" stroke-dasharray="339.292" stroke-dashoffset="0" stroke-linecap="round" fill="transparent" r="54" cx="60" cy="60"/>
-                </svg>
-                <div class="ring-text-container">
-                    <span id="task-countdown" class="font-black font-mono leading-none tracking-tighter text-white">--:--</span>
-                    <span id="task-duration-label" class="text-slate-400 font-bold">/ --:--</span>
-                </div>
+            <div class="task-col">
+                <img id="current-task-icon" class="current-task-icon-large hidden" src="" alt="Current Task">
+                
+                <h2 id="current-task-title" class="font-black text-center leading-tight tracking-tight m-0">
+                    Loading Task...
+                </h2>
             </div>
 
-            <!-- Focused Action Button -->
-            <button id="action-btn" class="btn btn-action tracking-wide" tabindex="-1">
-                COMPLETE TASK
-            </button>
+            <div class="task-col">
+                <!-- SVG Timer Ring -->
+                <div class="ring-container">
+                    <svg class="progress-ring" viewBox="0 0 120 120" width="486" height="486">
+                        <circle class="ring-bg" stroke-width="8" fill="transparent" r="54" cx="60" cy="60"/>
+                        <circle id="task-progress-ring" class="progress-ring__circle ring-calm" stroke-width="8" stroke-dasharray="339.292" stroke-dashoffset="0" stroke-linecap="round" fill="transparent" r="54" cx="60" cy="60"/>
+                    </svg>
+                    <div class="ring-text-container">
+                        <span id="task-countdown" class="font-black font-mono leading-none tracking-tighter text-white">--:--</span>
+                        <span id="task-duration-label" class="text-slate-400 font-bold">/ --:--</span>
+                    </div>
+                </div>
+
+                <!-- Focused Action Button -->
+                <button id="action-btn" class="btn btn-action tracking-wide" tabindex="-1">
+                    COMPLETE TASK
+                </button>
+            </div>
+            
         </div>
         
         <div id="completion-container" class="container-box hidden">
