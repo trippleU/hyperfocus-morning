@@ -17,8 +17,8 @@
             background-color: #0f172a;
             color: #ffffff;
             font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
-            width: 1920px;
-            height: 1080px;
+            width: 100vw;
+            height: 100vh;
             overflow: hidden; /* No scrolling on TV */
             user-select: none; /* No text selection */
             margin: 0;
@@ -60,8 +60,8 @@
             position: absolute;
             top: 0;
             left: 0;
-            width: 1920px;
-            height: 1080px;
+            width: 100vw;
+            height: 100vh;
             pointer-events: none;
             z-index: 50;
         }
@@ -72,28 +72,28 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 21px 76px; /* Approx 2vmin and 4vmin of 1080p */
+            padding: 2vh 4vw;
             background-color: #0f172a;
-            border-bottom: 4px solid #334155;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            border-bottom: 0.4vh solid #334155;
+            box-shadow: 0 2vh 5vh -1vh rgba(0, 0, 0, 0.25);
             z-index: 10;
             flex-shrink: 0;
         }
 
-        .header-label { font-size: 21px; }
-        .header-time { font-size: 64px; }
+        .header-label { font-size: 2vh; }
+        .header-time { font-size: 6vh; }
 
         /* Deficit Indicator */
         #deficit-indicator {
             background-color: #dc2626;
-            padding: 16px 57px;
-            border-radius: 24px;
-            box-shadow: 0 0 30px rgba(239, 68, 68, 0.6);
+            padding: 1.5vh 3vw;
+            border-radius: 2.5vh;
+            box-shadow: 0 0 3vh rgba(239, 68, 68, 0.6);
             text-align: center;
             max-width: 40%;
         }
         #deficit-text {
-            font-size: 37px;
+            font-size: 3.4vh;
         }
 
         /* Main Area */
@@ -106,7 +106,7 @@
             position: relative;
             width: 100%;
             z-index: 10;
-            padding: 21px 76px;
+            padding: 2vh 4vw;
         }
 
         /* Container styles */
@@ -140,21 +140,21 @@
         }
 
         /* Titles */
-        .title-main { font-size: 86px; margin-bottom: 43px; margin-top: 0; }
-        .title-sub { font-size: 43px; margin-bottom: 108px; }
+        .title-main { font-size: 8vh; margin-bottom: 4vh; margin-top: 0; }
+        .title-sub { font-size: 4vh; margin-bottom: 10vh; }
         #current-task-title {
-            font-size: 75px;
+            font-size: 7vh;
             width: 90%;
             margin: 0 auto;
             text-align: center;
         }
         
         .completion-title {
-            font-size: 108px;
+            font-size: 10vh;
             color: #22c55e;
-            margin-bottom: 43px;
+            margin-bottom: 4vh;
         }
-        .completion-sub { font-size: 64px; margin: 0; }
+        .completion-sub { font-size: 6vh; margin: 0; }
 
         /* Buttons */
         .btn {
@@ -168,23 +168,23 @@
         }
         .btn-start {
             background-color: #2563eb;
-            font-size: 54px;
-            padding: 32px 150px;
-            border-radius: 100px;
+            font-size: 5vh;
+            padding: 3vh 8vw;
+            border-radius: 10vh;
         }
         .btn-action {
             background-color: #334155;
-            font-size: 48px;
-            padding: 27px 150px;
-            border-radius: 32px;
+            font-size: 4.5vh;
+            padding: 2.5vh 8vw;
+            border-radius: 3vh;
             flex-shrink: 0;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            box-shadow: 0 2vh 5vh -1vh rgba(0, 0, 0, 0.25);
         }
 
         /* Action button focus state for TV D-pad */
         .btn:hover, .btn:active {
             transform: scale(1.05);
-            box-shadow: 0 0 40px rgba(255,255,255,0.4);
+            box-shadow: 0 0 4vh rgba(255,255,255,0.4);
             border-color: #ffffff;
             outline: none; /* Remove native focus */
         }
@@ -199,12 +199,11 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            margin-bottom: 40px;
+            margin-bottom: 4vh;
         }
         .progress-ring {
-            /* Set explicit dimensions for M56 parsing */
-            width: 486px;
-            height: 486px;
+            width: 45vh;
+            height: 45vh;
             transform: rotate(-90deg) translate3d(0,0,0); /* Hardware accelerated */
             transform-origin: 50% 50%;
         }
@@ -225,10 +224,10 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            margin-top: 10px;
+            margin-top: 1vh;
         }
-        #task-countdown { font-size: 130px; margin: 0; }
-        #task-duration-label { font-size: 32px; margin-top: 4px; }
+        #task-countdown { font-size: 12vh; margin: 0; }
+        #task-duration-label { font-size: 3vh; margin-top: 0.5vh; }
         
         /* Progress Bar */
         .progress-bar-wrapper {
@@ -237,7 +236,7 @@
             justify-content: space-between;
             align-items: center;
             position: relative;
-            margin-bottom: 40px;
+            margin-bottom: 4vh;
             z-index: 20;
         }
         .progress-bar-wrapper::before {
@@ -246,7 +245,7 @@
             top: 50%;
             left: 0;
             right: 0;
-            height: 6px;
+            height: 0.6vh;
             background-color: #334155;
             z-index: 1;
             transform: translateY(-50%);
@@ -254,19 +253,19 @@
         .progress-step {
             position: relative;
             z-index: 2;
-            width: 80px;
-            height: 80px;
+            width: 7.5vh;
+            height: 7.5vh;
             border-radius: 50%;
             background-color: #1e293b;
-            border: 6px solid #334155;
+            border: 0.6vh solid #334155;
             display: flex;
             justify-content: center;
             align-items: center;
             transition: all 0.3s ease;
         }
         .step-icon {
-            width: 40px;
-            height: 40px;
+            width: 3.7vh;
+            height: 3.7vh;
             filter: invert(1) opacity(0.5); /* Black SVG to dimmed white */
             transition: all 0.3s ease;
         }
@@ -284,12 +283,12 @@
             background-color: #3b82f6;
             border-color: #93c5fd;
             transform: scale(1.3);
-            box-shadow: 0 0 25px rgba(59, 130, 246, 0.8);
+            box-shadow: 0 0 2.5vh rgba(59, 130, 246, 0.8);
         }
         .step-active .step-icon {
             filter: invert(1) opacity(1);
-            width: 50px;
-            height: 50px;
+            width: 4.6vh;
+            height: 4.6vh;
         }
         
         .step-upcoming {
@@ -298,10 +297,10 @@
 
         /* Large Current Task Icon */
         .current-task-icon-large {
-            width: 220px;
-            height: 220px;
-            filter: invert(1) drop-shadow(0px 10px 15px rgba(255,255,255,0.2));
-            margin-bottom: 30px;
+            width: 20vh;
+            height: 20vh;
+            filter: invert(1) drop-shadow(0px 1vh 1.5vh rgba(255,255,255,0.2));
+            margin-bottom: 3vh;
         }
         
     </style>
@@ -355,7 +354,7 @@
             <div class="task-col">
                 <!-- SVG Timer Ring -->
                 <div class="ring-container">
-                    <svg class="progress-ring" viewBox="0 0 120 120" width="486" height="486">
+                    <svg class="progress-ring" viewBox="0 0 120 120">
                         <circle class="ring-bg" stroke-width="8" fill="transparent" r="54" cx="60" cy="60"/>
                         <circle id="task-progress-ring" class="progress-ring__circle ring-calm" stroke-width="8" stroke-dasharray="339.292" stroke-dashoffset="0" stroke-linecap="round" fill="transparent" r="54" cx="60" cy="60"/>
                     </svg>
