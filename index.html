@@ -2,61 +2,58 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Morning Routine</title>
     <!-- Content Security Policy to harden execution -->
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' https://cdn.tailwindcss.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self'; media-src 'self'; img-src 'self' data:;">
-    <!-- Tailwind CSS CDN -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        calmGreen: '#22c55e',
-                        transitionOrange: '#f97316',
-                        alertRed: '#ef4444',
-                        backgroundDark: '#0f172a'
-                    },
-                    fontFamily: {
-                        sans: ['Inter', 'ui-sans-serif', 'system-ui', '-apple-system', 'sans-serif'],
-                    }
-                }
-            }
-        }
-    </script>
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self'; media-src 'self'; img-src 'self' data:;">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
         
+        * {
+            box-sizing: border-box;
+        }
+
         body {
             background-color: #0f172a;
-            color: white;
+            color: #ffffff;
+            font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
+            width: 100vw;
+            height: 100vh;
             overflow: hidden; /* No scrolling on TV */
             user-select: none; /* No text selection */
             margin: 0;
             padding: 0;
-        }
-        
-        /* The giant SVG Ring */
-        .progress-ring {
-            transform: rotate(-90deg);
-            transform-origin: 50% 50%;
-        }
-        .progress-ring__circle {
-            transition: stroke-dashoffset 1s linear, stroke 0.5s ease-in-out;
+            position: absolute;
+            top: 0;
+            left: 0;
+            display: flex;
+            flex-direction: column;
         }
 
-        /* Action button focus state for TV D-pad */
-        #action-btn:focus, #start-btn:focus {
-            outline: 6px solid white;
-            outline-offset: 8px;
-            transform: scale(1.05);
-            box-shadow: 0 0 40px rgba(255,255,255,0.4);
-        }
+        /* Generic Utility Classes */
+        .hidden { display: none !important; }
+        .flex { display: flex; }
+        .flex-col { flex-direction: column; }
+        .text-center { text-align: center; }
+        .text-right { text-align: right; }
         
-        #action-btn.undo-state {
-            background-color: #ef4444; /* red for undo */
-        }
+        .uppercase { text-transform: uppercase; }
+        .font-bold { font-weight: 700; }
+        .font-black { font-weight: 900; }
+        .font-mono { font-family: monospace; }
+        .tracking-widest { letter-spacing: 0.1em; }
+        .tracking-wide { letter-spacing: 0.025em; }
+        .tracking-tighter { letter-spacing: -0.05em; }
+        .tracking-tight { letter-spacing: -0.025em; }
+        .leading-none { line-height: 1; }
+        .leading-tight { line-height: 1.25; }
+
+        /* Typography */
+        .text-slate-400 { color: #94a3b8; }
+        .text-slate-300 { color: #cbd5e1; }
+        .text-blue-400 { color: #60a5fa; }
+        .text-red-500 { color: #ef4444; }
+        .text-white { color: #ffffff; }
 
         /* Fullscreen Confetti Canvas */
         #confetti-canvas {
@@ -68,67 +65,316 @@
             pointer-events: none;
             z-index: 50;
         }
+
+        /* Header */
+        header {
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 2vh 4vw;
+            background-color: #0f172a;
+            border-bottom: 0.4vh solid #334155;
+            box-shadow: 0 2vh 5vh -1vh rgba(0, 0, 0, 0.25);
+            z-index: 10;
+            flex-shrink: 0;
+        }
+
+        .header-label { font-size: 2vh; }
+        .header-time { font-size: 6vh; }
+
+        /* Deficit Indicator */
+        #deficit-indicator {
+            background-color: #dc2626;
+            padding: 1.5vh 3vw;
+            border-radius: 2.5vh;
+            box-shadow: 0 0 3vh rgba(239, 68, 68, 0.6);
+            text-align: center;
+            max-width: 40%;
+        }
+        #deficit-text {
+            font-size: 3.4vh;
+        }
+
+        /* Main Area */
+        main {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-evenly;
+            position: relative;
+            width: 100%;
+            z-index: 10;
+            padding: 2vh 4vw;
+        }
+
+        /* Container styles */
+        .container-box {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        #task-container {
+            width: 100%;
+            flex-grow: 1;
+            display: flex; /* overridden to flex row */
+            flex-direction: row;
+            align-items: center;
+            justify-content: space-evenly;
+            position: relative;
+        }
+        
+        .task-col {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            width: 50%;
+            height: 100%;
+        }
+        #completion-container {
+            height: 100%;
+            justify-content: center;
+        }
+
+        /* Titles */
+        .title-main { font-size: 8vh; margin-bottom: 4vh; margin-top: 0; }
+        .title-sub { font-size: 4vh; margin-bottom: 10vh; }
+        #current-task-title {
+            font-size: 7vh;
+            width: 90%;
+            margin: 0 auto;
+            text-align: center;
+        }
+        
+        .completion-title {
+            font-size: 10vh;
+            color: #22c55e;
+            margin-bottom: 4vh;
+        }
+        .completion-sub { font-size: 6vh; margin: 0; }
+
+        /* Buttons */
+        .btn {
+            font-weight: 900;
+            color: #ffffff;
+            border: 6px solid transparent;
+            cursor: pointer;
+            will-change: transform;
+            transform: scale(1);
+            transition: transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94), box-shadow 0.3s ease, border-color 0.3s ease;
+        }
+        .btn-start {
+            background-color: #2563eb;
+            font-size: 5vh;
+            padding: 3vh 8vw;
+            border-radius: 10vh;
+        }
+        .btn-action {
+            background-color: #334155;
+            font-size: 4.5vh;
+            padding: 2.5vh 8vw;
+            border-radius: 3vh;
+            flex-shrink: 0;
+            box-shadow: 0 2vh 5vh -1vh rgba(0, 0, 0, 0.25);
+        }
+
+        /* Action button focus state for TV D-pad */
+        .btn:hover, .btn:active {
+            transform: scale(1.05);
+            box-shadow: 0 0 4vh rgba(255,255,255,0.4);
+            border-color: #ffffff;
+            outline: none; /* Remove native focus */
+        }
+        
+        .undo-state {
+            background-color: #ef4444 !important; /* red for undo */
+        }
+
+        /* SVG Timer Ring */
+        .ring-container {
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 4vh;
+        }
+        .progress-ring {
+            width: 45vh;
+            height: 45vh;
+            transform: rotate(-90deg) translate3d(0,0,0); /* Hardware accelerated */
+            transform-origin: 50% 50%;
+        }
+        .progress-ring__circle {
+            transition: stroke-dashoffset 1s linear, stroke 0.5s ease-in-out;
+            will-change: stroke-dashoffset, stroke;
+        }
+        
+        /* Ring Colors */
+        .ring-bg { stroke: #1e293b; }
+        .ring-calm { stroke: #22c55e; }
+        .ring-warn { stroke: #f97316; }
+        .ring-alert { stroke: #ef4444; }
+
+        .ring-text-container {
+            position: absolute;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            margin-top: 1vh;
+        }
+        #task-countdown { font-size: 12vh; margin: 0; }
+        #task-duration-label { font-size: 3vh; margin-top: 0.5vh; }
+        
+        /* Progress Bar */
+        .progress-bar-wrapper {
+            width: 90%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: relative;
+            margin-bottom: 4vh;
+            z-index: 20;
+        }
+        .progress-bar-wrapper::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 0;
+            right: 0;
+            height: 0.6vh;
+            background-color: #334155;
+            z-index: 1;
+            transform: translateY(-50%);
+        }
+        .progress-step {
+            position: relative;
+            z-index: 2;
+            width: 7.5vh;
+            height: 7.5vh;
+            border-radius: 50%;
+            background-color: #1e293b;
+            border: 0.6vh solid #334155;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: all 0.3s ease;
+        }
+        .step-icon {
+            width: 3.7vh;
+            height: 3.7vh;
+            filter: invert(1) opacity(0.5); /* Black SVG to dimmed white */
+            transition: all 0.3s ease;
+        }
+        
+        /* States */
+        .step-completed {
+            background-color: #22c55e;
+            border-color: #16a34a;
+        }
+        .step-completed .step-icon {
+            filter: invert(1) opacity(1);
+        }
+        
+        .step-active {
+            background-color: #3b82f6;
+            border-color: #93c5fd;
+            transform: scale(1.3);
+            box-shadow: 0 0 2.5vh rgba(59, 130, 246, 0.8);
+        }
+        .step-active .step-icon {
+            filter: invert(1) opacity(1);
+            width: 4.6vh;
+            height: 4.6vh;
+        }
+        
+        .step-upcoming {
+            background-color: #0f172a;
+        }
+
+        /* Large Current Task Icon */
+        .current-task-icon-large {
+            width: 20vh;
+            height: 20vh;
+            filter: invert(1) drop-shadow(0px 1vh 1.5vh rgba(255,255,255,0.2));
+            margin-bottom: 3vh;
+        }
+        
     </style>
 </head>
-<body class="absolute inset-0 overflow-hidden flex flex-col bg-slate-900 font-sans text-white select-none m-0 p-0">
+<body>
     <canvas id="confetti-canvas"></canvas>
 
     <!-- Macro Anchor (Header) -->
-    <header id="macro-anchor" class="w-full flex justify-between items-center px-[4vmin] py-[2vmin] bg-slate-900 border-b-4 border-slate-700 shadow-2xl z-10 transition-colors duration-1000 shrink-0">
+    <header id="macro-anchor">
         <div class="flex flex-col">
-            <span class="text-[2vmin] text-slate-400 font-bold uppercase tracking-widest">Current Time</span>
-            <span id="current-time-display" class="text-[6vmin] font-black leading-none tracking-tighter">--:--</span>
+            <span class="header-label text-slate-400 font-bold uppercase tracking-widest">Current Time</span>
+            <span id="current-time-display" class="header-time font-black leading-none tracking-tighter">--:--</span>
         </div>
         
         <!-- Deficit indicator -->
-        <div id="deficit-indicator" class="hidden bg-red-600 px-[3vmin] py-[1.5vmin] rounded-3xl animate-pulse shadow-[0_0_30px_rgba(239,68,68,0.6)] max-w-[40%] text-center">
-            <span id="deficit-text" class="text-[3.5vmin] font-black text-white tracking-wide">Behind Schedule</span>
+        <div id="deficit-indicator" class="hidden">
+            <span id="deficit-text" class="font-black text-white tracking-wide">Behind Schedule</span>
         </div>
 
         <div class="flex flex-col text-right">
-            <span class="text-[2vmin] text-slate-400 font-bold uppercase tracking-widest">Time to Leave House</span>
-            <span id="macro-countdown-display" class="text-[6vmin] font-black leading-none tracking-tighter text-blue-400 drop-shadow-md">--:--</span>
+            <span class="header-label text-slate-400 font-bold uppercase tracking-widest">Time to Leave House</span>
+            <span id="macro-countdown-display" class="header-time font-black leading-none tracking-tighter text-blue-400">--:--</span>
         </div>
     </header>
 
     <!-- Main Content Area (Single Task Focus) -->
-    <main class="flex-grow flex flex-col items-center justify-evenly relative w-full z-10 px-[4vmin] py-[2vmin]">
+    <main>
         
-        <div id="pre-start-container" class="flex flex-col items-center w-full">
-            <h1 class="text-[8vmin] font-black text-center mb-[4vmin] drop-shadow-xl text-white tracking-tight">Morning Routine</h1>
-            <h2 id="target-start-time" class="text-[4vmin] text-slate-300 mb-[10vmin] font-bold">Target Start: --:--</h2>
-            <button id="start-btn" class="bg-blue-600 text-white font-black text-[5vmin] px-[8vmin] py-[3vmin] rounded-full transition-all duration-300">
+        <div id="pre-start-container" class="container-box">
+            <h1 class="title-main font-black text-center tracking-tight">Morning Routine</h1>
+            <h2 id="target-start-time" class="title-sub text-slate-300 font-bold">Target Start: --:--</h2>
+            <button id="start-btn" class="btn btn-start" tabindex="-1">
                 START ROUTINE
             </button>
         </div>
 
-        <div id="task-container" class="hidden flex-col items-center justify-evenly w-full h-full relative">
-            
-            <h2 id="current-task-title" class="text-[7vmin] font-black text-center leading-tight w-[90%] mx-auto drop-shadow-2xl tracking-tight text-white m-0">
-                Loading Task...
-            </h2>
+        <div id="progress-bar-container" class="progress-bar-wrapper hidden">
+            <!-- Dynamically populated by app.js -->
+        </div>
 
-            <!-- SVG Timer Ring -->
-            <div class="relative flex items-center justify-center">
-                <svg class="progress-ring w-[45vmin] h-[45vmin]" viewBox="0 0 120 120">
-                    <circle class="text-slate-800" stroke-width="8" stroke="currentColor" fill="transparent" r="54" cx="60" cy="60"/>
-                    <circle id="task-progress-ring" class="progress-ring__circle text-calmGreen drop-shadow-[0_0_15px_rgba(34,197,94,0.5)]" stroke-width="8" stroke-dasharray="339.292" stroke-dashoffset="0" stroke-linecap="round" stroke="currentColor" fill="transparent" r="54" cx="60" cy="60"/>
-                </svg>
-                <div class="absolute flex flex-col items-center justify-center mt-[1vmin]">
-                    <span id="task-countdown" class="text-[12vmin] font-black font-mono leading-none tracking-tighter drop-shadow-2xl text-white">--:--</span>
-                    <span id="task-duration-label" class="text-[3vmin] text-slate-400 font-bold mt-1">/ --:--</span>
-                </div>
+        <div id="task-container" class="hidden">
+            
+            <div class="task-col">
+                <img id="current-task-icon" class="current-task-icon-large hidden" src="" alt="Current Task">
+                
+                <h2 id="current-task-title" class="font-black text-center leading-tight tracking-tight m-0">
+                    Loading Task...
+                </h2>
             </div>
 
-            <!-- Focused Action Button -->
-            <button id="action-btn" class="bg-slate-700 text-white font-black text-[4.5vmin] px-[8vmin] py-[2.5vmin] rounded-[3vmin] transition-all duration-300 shadow-2xl tracking-wide shrink-0">
-                COMPLETE TASK
-            </button>
+            <div class="task-col">
+                <!-- SVG Timer Ring -->
+                <div class="ring-container">
+                    <svg class="progress-ring" viewBox="0 0 120 120">
+                        <circle class="ring-bg" stroke-width="8" fill="transparent" r="54" cx="60" cy="60"/>
+                        <circle id="task-progress-ring" class="progress-ring__circle ring-calm" stroke-width="8" stroke-dasharray="339.292" stroke-dashoffset="0" stroke-linecap="round" fill="transparent" r="54" cx="60" cy="60"/>
+                    </svg>
+                    <div class="ring-text-container">
+                        <span id="task-countdown" class="font-black font-mono leading-none tracking-tighter text-white">--:--</span>
+                        <span id="task-duration-label" class="text-slate-400 font-bold">/ --:--</span>
+                    </div>
+                </div>
+
+                <!-- Focused Action Button -->
+                <button id="action-btn" class="btn btn-action tracking-wide" tabindex="-1">
+                    COMPLETE TASK
+                </button>
+            </div>
+            
         </div>
         
-        <div id="completion-container" class="hidden flex-col items-center justify-center w-full h-full">
-            <h1 class="text-[10vmin] font-black text-center mb-[4vmin] text-calmGreen drop-shadow-[0_0_40px_rgba(34,197,94,0.8)] tracking-tighter">ROUTINE COMPLETE</h1>
-            <h2 class="text-[6vmin] text-white font-bold drop-shadow-xl">Time to leave!</h2>
+        <div id="completion-container" class="container-box hidden">
+            <h1 class="completion-title font-black text-center tracking-tighter">ROUTINE COMPLETE</h1>
+            <h2 class="completion-sub font-bold text-white">Time to leave!</h2>
         </div>
         
     </main>

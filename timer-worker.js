@@ -1,9 +1,9 @@
-let expected;
-let timeoutId;
-const interval = 1000;
+var expected;
+var timeoutId;
+var interval = 1000;
 
 function step() {
-    const dt = Date.now() - expected; // the drift
+    var dt = Date.now() - expected; // the drift
     
     // Post the tick to the main thread
     postMessage({ type: 'TICK', timestamp: Date.now() });
