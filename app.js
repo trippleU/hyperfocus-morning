@@ -405,11 +405,8 @@ function updateTaskViewUI(nowTs) {
         
         DOM.taskDurationLabel.innerHTML = '<span class="badge-overdue">OVERDUE</span> / ' + task.durationMinutes + ':00';
         
-        // Overtime ring: progressively fills clockwise in hot red (starts with a visible anchor minimum)
-        var overduePercent = Math.min(1, Math.max(0.06, overdueMs / totalMs));
-        var overdueOffset = circumference - (overduePercent * circumference);
-        circle.style.strokeDashoffset = overdueOffset;
-        circle.classList.add('ring-overdue');
+        // Keep the active circle at zero (fully elapsed) - no growing circle in overdue
+        circle.style.strokeDashoffset = circumference;
         
         if (DOM.progressRingSvg) {
             DOM.progressRingSvg.classList.add('ring-overdue-container');
