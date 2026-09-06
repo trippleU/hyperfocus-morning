@@ -201,22 +201,126 @@
             justify-content: center;
             margin-bottom: 4vh;
         }
+
+        /* Ambient Overdue Aura behind ring */
+        .ring-container::before {
+            content: '';
+            position: absolute;
+            width: 54vh;
+            height: 54vh;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(239, 68, 68, 0.35) 0%, rgba(239, 68, 68, 0.12) 50%, transparent 70%);
+            opacity: 0;
+            pointer-events: none;
+            z-index: 0;
+            transition: opacity 0.6s ease;
+        }
+        .ring-container.ambient-overdue::before {
+            opacity: 1;
+            animation: ambient-red-pulse 1.5s infinite ease-in-out;
+        }
+
         .progress-ring {
             width: 45vh;
             height: 45vh;
             transform: rotate(-90deg) translate3d(0,0,0); /* Hardware accelerated */
             transform-origin: 50% 50%;
+            position: relative;
+            z-index: 1;
+            transition: filter 0.3s ease;
         }
+        .progress-ring.ring-imminent {
+            animation: ring-heartbeat 1s infinite ease-in-out;
+        }
+        .progress-ring.ring-imminent-fast {
+            animation: ring-heartbeat-fast 0.5s infinite ease-in-out;
+        }
+        .progress-ring.ring-overdue-container {
+            animation: ring-heartbeat 1.2s infinite ease-in-out;
+        }
+
         .progress-ring__circle {
             transition: stroke-dashoffset 1s linear, stroke 0.5s ease-in-out;
             will-change: stroke-dashoffset, stroke;
         }
         
         /* Ring Colors */
-        .ring-bg { stroke: #1e293b; }
+        .ring-bg { stroke: #1e293b; transition: stroke 0.5s ease; }
+        .ring-bg.ring-bg-overdue { stroke: #2a1520; }
         .ring-calm { stroke: #22c55e; }
         .ring-warn { stroke: #f97316; }
         .ring-alert { stroke: #ef4444; }
+        .ring-overdue {
+            stroke: #ef4444;
+            animation: ring-overdue-beacon 1.2s infinite ease-in-out;
+        }
+
+        /* Urgency & Overdue Animations */
+        @keyframes ring-heartbeat {
+            0%, 100% {
+                filter: drop-shadow(0 0 1vh rgba(239, 68, 68, 0.4));
+                transform: rotate(-90deg) scale(1);
+            }
+            50% {
+                filter: drop-shadow(0 0 2.5vh rgba(239, 68, 68, 0.8));
+                transform: rotate(-90deg) scale(1.02);
+            }
+        }
+
+        @keyframes ring-heartbeat-fast {
+            0%, 100% {
+                filter: drop-shadow(0 0 1.2vh rgba(239, 68, 68, 0.5));
+                transform: rotate(-90deg) scale(1);
+            }
+            50% {
+                filter: drop-shadow(0 0 3.5vh rgba(239, 68, 68, 1));
+                transform: rotate(-90deg) scale(1.035);
+            }
+        }
+
+        @keyframes ring-overdue-beacon {
+            0%, 100% {
+                filter: drop-shadow(0 0 1.5vh rgba(244, 63, 94, 0.6));
+                stroke: #f43f5e;
+            }
+            50% {
+                filter: drop-shadow(0 0 4vh rgba(239, 68, 68, 1));
+                stroke: #ef4444;
+            }
+        }
+
+        @keyframes ambient-red-pulse {
+            0%, 100% {
+                opacity: 0.35;
+                transform: scale(0.95);
+            }
+            50% {
+                opacity: 0.75;
+                transform: scale(1.08);
+            }
+        }
+
+        @keyframes badge-pulse {
+            0%, 100% {
+                transform: scale(1);
+                box-shadow: 0 0 1.2vh rgba(239, 68, 68, 0.6);
+            }
+            50% {
+                transform: scale(1.08);
+                box-shadow: 0 0 2.5vh rgba(239, 68, 68, 1);
+            }
+        }
+
+        @keyframes action-btn-urgent {
+            0%, 100% {
+                box-shadow: 0 2vh 5vh -1vh rgba(0, 0, 0, 0.25);
+                border-color: transparent;
+            }
+            50% {
+                box-shadow: 0 0 3.5vh rgba(239, 68, 68, 0.7);
+                border-color: #ef4444;
+            }
+        }
 
         .ring-text-container {
             position: absolute;
@@ -225,9 +329,47 @@
             align-items: center;
             justify-content: center;
             margin-top: 1vh;
+            z-index: 2;
         }
-        #task-countdown { font-size: 12vh; margin: 0; }
-        #task-duration-label { font-size: 3vh; margin-top: 0.5vh; }
+        #task-countdown {
+            font-size: 12vh;
+            margin: 0;
+            transition: color 0.3s ease, text-shadow 0.3s ease;
+        }
+        #task-countdown.text-imminent {
+            color: #f87171;
+            text-shadow: 0 0 2vh rgba(239, 68, 68, 0.4);
+        }
+        #task-countdown.text-overdue {
+            color: #ef4444;
+            text-shadow: 0 0 2.5vh rgba(239, 68, 68, 0.7);
+        }
+        #task-duration-label {
+            font-size: 3vh;
+            margin-top: 0.5vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .badge-overdue {
+            background-color: #dc2626;
+            color: #ffffff;
+            padding: 0.3vh 1.4vh;
+            border-radius: 2vh;
+            font-size: 2.2vh;
+            font-weight: 900;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            margin-right: 1vh;
+            box-shadow: 0 0 1.5vh rgba(239, 68, 68, 0.8);
+            animation: badge-pulse 1s infinite alternate ease-in-out;
+            display: inline-block;
+        }
+
+        .btn-urgent {
+            animation: action-btn-urgent 1.2s infinite ease-in-out;
+        }
         
         /* Progress Bar */
         .progress-bar-wrapper {

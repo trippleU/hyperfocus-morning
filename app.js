@@ -16,6 +16,7 @@ var AppState = {
     speechEnabled: true,
     hasAnnouncedHalfway: false,
     hasAnnouncedOneMin: false,
+    hasAnnouncedTimeUp: false,
     tenMinWarning: false,
     macroClockInterval: null
 };
@@ -50,6 +51,9 @@ function cacheDOM() {
     DOM.taskCountdown = document.getElementById('task-countdown');
     DOM.taskDurationLabel = document.getElementById('task-duration-label');
     DOM.taskProgressRing = document.getElementById('task-progress-ring');
+    DOM.progressRingSvg = document.querySelector('.progress-ring');
+    DOM.ringContainer = document.querySelector('.ring-container');
+    DOM.ringBg = document.querySelector('.ring-bg');
     
     DOM.currentTimeDisplay = document.getElementById('current-time-display');
     DOM.macroCountdownDisplay = document.getElementById('macro-countdown-display');
@@ -254,6 +258,7 @@ function startCurrentTask() {
     AppState.taskExpectedEndDate = new Date(Date.now() + task.durationMinutes * 60000);
     AppState.hasAnnouncedHalfway = false;
     AppState.hasAnnouncedOneMin = false;
+    AppState.hasAnnouncedTimeUp = false;
     
     DOM.currentTaskTitle.innerText = task.title;
     if (DOM.currentTaskIcon) {
@@ -293,6 +298,9 @@ function finishRoutine() {
     
     if (AppState.worker) AppState.worker.postMessage({command: 'STOP'});
     
+    if (DOM.ringContainer) DOM.ringContainer.classList.remove('ambient-overdue');
+    if (DOM.actionBtn) DOM.actionBtn.classList.remove('btn-urgent', 'undo-state');
+    
     DOM.taskContainer.classList.remove('flex');
     DOM.taskContainer.classList.add('hidden');
     
@@ -321,43 +329,106 @@ function updateTaskViewUI(nowTs) {
     
     var remainingMs = AppState.taskExpectedEndDate.getTime() - nowTs;
     var totalMs = task.durationMinutes * 60000;
-    
-    var displayMs = Math.max(0, remainingMs);
-    var secondsLeft = Math.ceil(displayMs / 1000);
-    
-    var m = Math.floor(secondsLeft / 60).toString();
-    if (m.length < 2) m = '0' + m;
-    var s = (secondsLeft % 60).toString();
-    if (s.length < 2) s = '0' + s;
-    
-    DOM.taskCountdown.innerText = m + ':' + s;
-    DOM.taskDurationLabel.innerText = '/ ' + task.durationMinutes + ':00';
-    
-    var circle = DOM.taskProgressRing;
     var circumference = 339.292;
-    var percent = Math.min(1, Math.max(0, displayMs / totalMs));
-    var offset = circumference - (percent * circumference);
-    circle.style.strokeDashoffset = offset;
+    var circle = DOM.taskProgressRing;
     
-    circle.classList.remove('ring-calm', 'ring-warn', 'ring-alert');
-    
-    if (percent > 0.5) {
-        circle.classList.add('ring-calm');
-    } else if (percent > 0.15) {
-        circle.classList.add('ring-warn');
+    // Reset all dynamic urgency classes before applying current state
+    circle.classList.remove('ring-calm', 'ring-warn', 'ring-alert', 'ring-overdue');
+    if (DOM.progressRingSvg) {
+        DOM.progressRingSvg.classList.remove('ring-imminent', 'ring-imminent-fast', 'ring-overdue-container');
+    }
+    if (DOM.ringBg) {
+        DOM.ringBg.classList.remove('ring-bg-overdue');
+    }
+    if (DOM.ringContainer) {
+        DOM.ringContainer.classList.remove('ambient-overdue');
+    }
+    DOM.taskCountdown.classList.remove('text-imminent', 'text-overdue');
+    if (DOM.actionBtn && !AppState.undoPending) {
+        DOM.actionBtn.classList.remove('btn-urgent');
+    }
+
+    if (remainingMs > 0) {
+        // --- COUNTDOWN RUNNING ---
+        var secondsLeft = Math.ceil(remainingMs / 1000);
+        
+        var m = Math.floor(secondsLeft / 60).toString();
+        if (m.length < 2) m = '0' + m;
+        var s = (secondsLeft % 60).toString();
+        if (s.length < 2) s = '0' + s;
+        
+        DOM.taskCountdown.innerText = m + ':' + s;
+        DOM.taskDurationLabel.innerHTML = '/ ' + task.durationMinutes + ':00';
+        
+        var percent = Math.min(1, Math.max(0, remainingMs / totalMs));
+        var offset = circumference - (percent * circumference);
+        circle.style.strokeDashoffset = offset;
+        
+        if (percent > 0.5) {
+            circle.classList.add('ring-calm');
+        } else if (percent > 0.15) {
+            circle.classList.add('ring-warn');
+        } else {
+            circle.classList.add('ring-alert');
+        }
+        
+        // Imminent urgency stages: Final 60s & Final 20s
+        if (secondsLeft <= 20) {
+            if (DOM.progressRingSvg) DOM.progressRingSvg.classList.add('ring-imminent-fast');
+            DOM.taskCountdown.classList.add('text-imminent');
+        } else if (secondsLeft <= 60) {
+            if (DOM.progressRingSvg) DOM.progressRingSvg.classList.add('ring-imminent');
+        }
+        
+        // Auditory milestones
+        if (percent <= 0.5 && !AppState.hasAnnouncedHalfway && secondsLeft > 0) {
+            speak("Halfway there.");
+            AppState.hasAnnouncedHalfway = true;
+        }
+        
+        if (secondsLeft <= 60 && !AppState.hasAnnouncedOneMin) {
+            speak("One minute remaining.");
+            AppState.hasAnnouncedOneMin = true;
+        }
     } else {
-        circle.classList.add('ring-alert');
-    }
-    
-    // Auditory milestones
-    if (percent <= 0.5 && !AppState.hasAnnouncedHalfway && secondsLeft > 0) {
-        speak("Halfway there.");
-        AppState.hasAnnouncedHalfway = true;
-    }
-    
-    if (secondsLeft === 60 && !AppState.hasAnnouncedOneMin) {
-        speak("One minute remaining.");
-        AppState.hasAnnouncedOneMin = true;
+        // --- OVERTIME / OVERDUE ACTIVE ---
+        var overdueMs = Math.abs(remainingMs);
+        var overdueSec = Math.floor(overdueMs / 1000);
+        
+        var oM = Math.floor(overdueSec / 60).toString();
+        if (oM.length < 2) oM = '0' + oM;
+        var oS = (overdueSec % 60).toString();
+        if (oS.length < 2) oS = '0' + oS;
+        
+        DOM.taskCountdown.innerText = '+' + oM + ':' + oS;
+        DOM.taskCountdown.classList.add('text-overdue');
+        
+        DOM.taskDurationLabel.innerHTML = '<span class="badge-overdue">OVERDUE</span> / ' + task.durationMinutes + ':00';
+        
+        // Overtime ring: progressively fills clockwise in hot red (starts with a visible anchor minimum)
+        var overduePercent = Math.min(1, Math.max(0.06, overdueMs / totalMs));
+        var overdueOffset = circumference - (overduePercent * circumference);
+        circle.style.strokeDashoffset = overdueOffset;
+        circle.classList.add('ring-overdue');
+        
+        if (DOM.progressRingSvg) {
+            DOM.progressRingSvg.classList.add('ring-overdue-container');
+        }
+        if (DOM.ringBg) {
+            DOM.ringBg.classList.add('ring-bg-overdue');
+        }
+        if (DOM.ringContainer) {
+            DOM.ringContainer.classList.add('ambient-overdue');
+        }
+        if (DOM.actionBtn && !AppState.undoPending) {
+            DOM.actionBtn.classList.add('btn-urgent');
+        }
+        
+        // Auditory milestone: zero mark reached
+        if (!AppState.hasAnnouncedTimeUp) {
+            speak("Time is up for " + task.title + "!");
+            AppState.hasAnnouncedTimeUp = true;
+        }
     }
 }
 
@@ -460,6 +531,7 @@ function startUndoWindow() {
     AppState.undoPending = true;
     AppState.undoSecondsLeft = 4;
     
+    DOM.actionBtn.classList.remove('btn-urgent');
     DOM.actionBtn.classList.add('undo-state');
     DOM.actionBtn.innerHTML = 'UNDO NEXT TASK? (' + AppState.undoSecondsLeft + ')';
     
@@ -496,7 +568,7 @@ function commitTaskCompletion() {
         AppState.undoTimeout = null;
     }
     
-    DOM.actionBtn.classList.remove('undo-state');
+    DOM.actionBtn.classList.remove('undo-state', 'btn-urgent');
     DOM.actionBtn.innerHTML = 'COMPLETE TASK';
     
     if (!AppState.audioCtx) {
