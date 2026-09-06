@@ -1,15 +1,51 @@
 {
   "settings": {
-    "departureTime": "07:25",
+    "departureTime": "07:20",
     "defaultBufferMinutes": 2,
     "enableVoiceSpeech": true
   },
   "tasks": [
-    { "id": 1, "title": "Aufwachen & Wasser drinken", "durationMinutes": 10, "icon": "assets/droplet.svg" },
-    { "id": 2, "title": "Vitamine nehmen", "durationMinutes": 3, "icon": "assets/pill.svg" },
-    { "id": 3, "title": "Frühstück", "durationMinutes": 30, "icon": "assets/utensils.svg" },
-    { "id": 4, "title": "Zähne putzen", "durationMinutes": 5, "icon": "assets/smile.svg" },
-    { "id": 5, "title": "Kuscheln", "durationMinutes": 3, "icon": "assets/heart.svg" },
-    { "id": 7, "title": "Schuhe und los", "durationMinutes": 5, "icon": "assets/footprints.svg" }
+    {
+      "id": 1,
+      "title": "Aufwachen & Wasser drinken",
+      "durationMinutes": 10,
+      "icon": "assets/droplet.svg"
+    },
+    {
+      "id": 2,
+      "title": "Vitamine nehmen",
+      "durationMinutes": 3,
+      "icon": "assets/pill.svg"
+    },
+    {
+      "id": 3,
+      "title": "Frühstück",
+      "durationMinutes": 30,
+      "icon": "assets/utensils.svg"
+    },
+    {
+      "id": 4,
+      "title": "Zähne putzen",
+      "durationMinutes": 5,
+      "icon": "assets/smile.svg"
+    },
+    {
+      "id": 5,
+      "title": "Kuscheln",
+      "durationMinutes": 3,
+      "icon": "assets/heart.svg"
+    },
+    {
+      "id": 6,
+      "title": "Schultasche packen",
+      "durationMinutes": 3,
+      "icon": "assets/backpack.svg"
+    },
+    {
+      "id": 7,
+      "title": "Schuhe und los",
+      "durationMinutes": 5,
+      "icon": "assets/footprints.svg"
+    }
   ]
 }

@@ -387,8 +387,8 @@
             content: '';
             position: absolute;
             top: 50%;
-            left: 0;
-            right: 0;
+            left: 3.75vh;
+            right: 3.75vh;
             height: 0.6vh;
             background-color: #334155;
             z-index: 1;
@@ -399,6 +399,7 @@
             z-index: 2;
             width: 7.5vh;
             height: 7.5vh;
+            flex-shrink: 0;
             border-radius: 50%;
             background-color: #1e293b;
             border: 0.6vh solid #334155;
@@ -473,16 +474,16 @@
     <!-- Main Content Area (Single Task Focus) -->
     <main>
         
+        <div id="progress-bar-container" class="progress-bar-wrapper hidden">
+            <!-- Dynamically populated by app.js -->
+        </div>
+
         <div id="pre-start-container" class="container-box">
             <h1 class="title-main font-black text-center tracking-tight">Morning Routine</h1>
             <h2 id="target-start-time" class="title-sub text-slate-300 font-bold">Target Start: --:--</h2>
             <button id="start-btn" class="btn btn-start" tabindex="-1">
                 START ROUTINE
             </button>
-        </div>
-
-        <div id="progress-bar-container" class="progress-bar-wrapper hidden">
-            <!-- Dynamically populated by app.js -->
         </div>
 
         <div id="task-container" class="hidden">

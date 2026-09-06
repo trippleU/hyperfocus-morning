@@ -23,15 +23,18 @@ var AppState = {
 
 var FallbackData = {
     "settings": {
-        "departureTime": "07:15",
+        "departureTime": "07:20",
         "defaultBufferMinutes": 2,
         "enableVoiceSpeech": true
     },
     "tasks": [
-        { "id": 1, "title": "Wake up & drink water", "durationMinutes": 10 },
-        { "id": 2, "title": "High-Stimulation Hygiene", "durationMinutes": 20 },
-        { "id": 3, "title": "Eat Breakfast", "durationMinutes": 20 },
-        { "id": 4, "title": "Final Launch Checklist", "durationMinutes": 10 }
+        { "id": 1, "title": "Aufwachen & Wasser drinken", "durationMinutes": 10, "icon": "assets/droplet.svg" },
+        { "id": 2, "title": "Vitamine nehmen", "durationMinutes": 3, "icon": "assets/pill.svg" },
+        { "id": 3, "title": "Frühstück", "durationMinutes": 30, "icon": "assets/utensils.svg" },
+        { "id": 4, "title": "Zähne putzen", "durationMinutes": 5, "icon": "assets/smile.svg" },
+        { "id": 5, "title": "Kuscheln", "durationMinutes": 3, "icon": "assets/heart.svg" },
+        { "id": 6, "title": "Schultasche packen", "durationMinutes": 3, "icon": "assets/backpack.svg" },
+        { "id": 7, "title": "Schuhe und los", "durationMinutes": 5, "icon": "assets/footprints.svg" }
     ]
 };
 
@@ -72,7 +75,8 @@ document.addEventListener('DOMContentLoaded', init);
 function init() {
     cacheDOM();
     
-    fetch('routine.json')
+    // Use cache-busting timestamp and no-store to ensure routine.json edits are picked up immediately
+    fetch('routine.json?t=' + Date.now(), { cache: 'no-store' })
         .then(function(res) {
             if (!res.ok) throw new Error("JSON not found");
             return res.json();
@@ -109,6 +113,15 @@ function setupApp(data) {
         var task = AppState.tasks[AppState.currentTaskIndex];
         if (task) {
             DOM.currentTaskTitle.innerText = task.title;
+            if (DOM.currentTaskIcon) {
+                if (task.icon) {
+                    DOM.currentTaskIcon.src = task.icon;
+                    DOM.currentTaskIcon.classList.remove('hidden');
+                } else {
+                    DOM.currentTaskIcon.classList.add('hidden');
+                }
+            }
+            updateProgressBarUI(AppState.currentTaskIndex);
             updateTaskViewUI(Date.now());
         } else {
             finishRoutine();
@@ -190,7 +203,7 @@ function restoreState() {
             }
             
             AppState.isRoutineActive = true;
-            AppState.currentTaskIndex = data.currentTaskIndex || 0;
+            AppState.currentTaskIndex = Math.min(data.currentTaskIndex || 0, AppState.tasks.length - 1);
             AppState.taskExpectedEndDate = expDate;
             AppState.departureDate = new Date(data.departureDate);
         }
@@ -206,8 +219,9 @@ function showPreStartView() {
     DOM.taskContainer.classList.remove('flex');
     DOM.completionContainer.classList.add('hidden');
     if (DOM.progressBarContainer) {
-        DOM.progressBarContainer.classList.add('hidden');
-        DOM.progressBarContainer.classList.remove('flex');
+        DOM.progressBarContainer.classList.remove('hidden');
+        DOM.progressBarContainer.classList.add('flex');
+        updateProgressBarUI(-1);
     }
     
     var tH = AppState.targetStartDate.getHours().toString();
@@ -251,6 +265,24 @@ function startRoutine() {
     startCurrentTask();
 }
 
+function updateProgressBarUI(activeIndex) {
+    if (typeof activeIndex === 'undefined') activeIndex = AppState.currentTaskIndex;
+    for (var i = 0; i < AppState.tasks.length; i++) {
+        var stepDiv = document.getElementById('progress-step-' + i);
+        if (!stepDiv) continue;
+        stepDiv.className = 'progress-step'; // reset
+        if (activeIndex === -1) {
+            stepDiv.classList.add('step-upcoming');
+        } else if (i < activeIndex) {
+            stepDiv.classList.add('step-completed');
+        } else if (i === activeIndex) {
+            stepDiv.classList.add('step-active');
+        } else {
+            stepDiv.classList.add('step-upcoming');
+        }
+    }
+}
+
 function startCurrentTask() {
     var task = AppState.tasks[AppState.currentTaskIndex];
     if (!task) return finishRoutine();
@@ -270,19 +302,7 @@ function startCurrentTask() {
         }
     }
     
-    // Update progress bar UI
-    for (var i = 0; i < AppState.tasks.length; i++) {
-        var stepDiv = document.getElementById('progress-step-' + i);
-        if (!stepDiv) continue;
-        stepDiv.className = 'progress-step'; // reset
-        if (i < AppState.currentTaskIndex) {
-            stepDiv.classList.add('step-completed');
-        } else if (i === AppState.currentTaskIndex) {
-            stepDiv.classList.add('step-active');
-        } else {
-            stepDiv.classList.add('step-upcoming');
-        }
-    }
+    updateProgressBarUI(AppState.currentTaskIndex);
 
     
     saveState();
