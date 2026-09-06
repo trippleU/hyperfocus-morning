@@ -17,6 +17,7 @@ var AppState = {
     hasAnnouncedHalfway: false,
     hasAnnouncedOneMin: false,
     hasAnnouncedTimeUp: false,
+    lastHeartbeatSecond: null,
     tenMinWarning: false,
     macroClockInterval: null
 };
@@ -291,6 +292,7 @@ function startCurrentTask() {
     AppState.hasAnnouncedHalfway = false;
     AppState.hasAnnouncedOneMin = false;
     AppState.hasAnnouncedTimeUp = false;
+    AppState.lastHeartbeatSecond = null;
     
     DOM.currentTaskTitle.innerText = task.title;
     if (DOM.currentTaskIcon) {
@@ -314,6 +316,7 @@ function startCurrentTask() {
 
 function finishRoutine() {
     AppState.isRoutineActive = false;
+    AppState.lastHeartbeatSecond = null;
     localStorage.removeItem(STORAGE_KEY);
     
     if (AppState.worker) AppState.worker.postMessage({command: 'STOP'});
@@ -400,6 +403,14 @@ function updateTaskViewUI(nowTs) {
             if (DOM.progressRingSvg) DOM.progressRingSvg.classList.add('ring-imminent');
         }
         
+        // Audio heartbeat cue during imminent urgency (final 60s)
+        if (secondsLeft <= 60 && secondsLeft > 0) {
+            if (AppState.lastHeartbeatSecond !== secondsLeft) {
+                AppState.lastHeartbeatSecond = secondsLeft;
+                playHeartbeat(secondsLeft <= 20);
+            }
+        }
+        
         // Auditory milestones
         if (percent <= 0.5 && !AppState.hasAnnouncedHalfway && secondsLeft > 0) {
             speak("Halfway there.");
@@ -443,6 +454,7 @@ function updateTaskViewUI(nowTs) {
         
         // Auditory milestone: zero mark reached
         if (!AppState.hasAnnouncedTimeUp) {
+            playTimeUpSound();
             speak("Time is up for " + task.title + "!");
             AppState.hasAnnouncedTimeUp = true;
         }
@@ -512,18 +524,21 @@ function setupRemoteControls() {
     // Add click event listeners for TV virtual cursor and PC mouse
     if (DOM.startBtn) {
         DOM.startBtn.addEventListener('click', function(e) {
+            ensureAudio();
             startRoutine();
         });
     }
     
     if (DOM.actionBtn) {
         DOM.actionBtn.addEventListener('click', function(e) {
+            ensureAudio();
             onActionBtnClick();
         });
     }
 
     // Keep Enter key support as a fallback
     window.addEventListener('keydown', function(e) {
+        ensureAudio();
         var key = e.keyCode || e.which;
         if (key === 13) {
             e.preventDefault();
@@ -580,6 +595,7 @@ function cancelUndo() {
 
 function commitTaskCompletion() {
     AppState.undoPending = false;
+    AppState.lastHeartbeatSecond = null;
     if (AppState.undoTimeout) {
         clearInterval(AppState.undoTimeout);
         AppState.undoTimeout = null;
@@ -588,10 +604,7 @@ function commitTaskCompletion() {
     DOM.actionBtn.classList.remove('undo-state', 'btn-urgent');
     DOM.actionBtn.innerHTML = 'COMPLETE TASK';
     
-    if (!AppState.audioCtx) {
-        AppState.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        AppState.audioCtx.resume();
-    }
+    ensureAudio();
     playChime();
     triggerConfetti();
     
@@ -600,13 +613,100 @@ function commitTaskCompletion() {
 }
 
 // --- MEDIA & EFFECTS ---
+function ensureAudio() {
+    if (!AppState.audioCtx) {
+        AppState.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    if (AppState.audioCtx.state === 'suspended') {
+        AppState.audioCtx.resume();
+    }
+}
+
+function playHeartbeat(isFast) {
+    ensureAudio();
+    var ctx = AppState.audioCtx;
+    if (!ctx) return;
+    
+    var now = ctx.currentTime;
+    
+    function playThump(time, baseFreq, gainPeak, duration) {
+        var osc = ctx.createOscillator();
+        var gainNode = ctx.createGain();
+        
+        osc.type = 'sine';
+        osc.connect(gainNode);
+        gainNode.connect(ctx.destination);
+        
+        // Fast pitch drop produces a soft, organic acoustic thump rather than an artificial beep
+        osc.frequency.setValueAtTime(baseFreq, time);
+        osc.frequency.exponentialRampToValueAtTime(38, time + duration);
+        
+        // Soft envelope: non-distressing, muffled heartbeat sound
+        gainNode.gain.setValueAtTime(0.001, time);
+        gainNode.gain.linearRampToValueAtTime(gainPeak, time + 0.015);
+        gainNode.gain.exponentialRampToValueAtTime(0.001, time + duration);
+        
+        osc.start(time);
+        osc.stop(time + duration);
+    }
+    
+    var gain1 = isFast ? 0.20 : 0.14;
+    var gain2 = isFast ? 0.13 : 0.09;
+    
+    // First beat: "lub" (deeper, ~95Hz dropping to ~38Hz)
+    playThump(now, 95, gain1, 0.09);
+    // Second beat: "dub" (~115Hz dropping to ~38Hz)
+    playThump(now + 0.13, 115, gain2, 0.07);
+    
+    if (isFast) {
+        // Second heartbeat pulse at +0.5s to align with the 0.5s visual heartbeat animation
+        playThump(now + 0.50, 100, gain1, 0.09);
+        playThump(now + 0.63, 120, gain2, 0.07);
+    }
+}
+
+function playTimeUpSound() {
+    ensureAudio();
+    var ctx = AppState.audioCtx;
+    if (!ctx) return;
+    
+    var now = ctx.currentTime;
+    // Pleasant, non-distressing warm two-tone chime to announce time-up
+    var notes = [
+        { f: 440.00, t: 0, d: 0.35, gain: 0.20 },   // A4
+        { f: 349.23, t: 0.22, d: 0.55, gain: 0.16 }  // F4
+    ];
+    
+    notes.forEach(function(note) {
+        var osc = ctx.createOscillator();
+        var gainNode = ctx.createGain();
+        osc.type = 'sine';
+        osc.connect(gainNode);
+        gainNode.connect(ctx.destination);
+        
+        osc.frequency.setValueAtTime(note.f, now + note.t);
+        gainNode.gain.setValueAtTime(0.001, now + note.t);
+        gainNode.gain.linearRampToValueAtTime(note.gain, now + note.t + 0.02);
+        gainNode.gain.exponentialRampToValueAtTime(0.001, now + note.t + note.d);
+        
+        osc.start(now + note.t);
+        osc.stop(now + note.t + note.d);
+    });
+}
+
 function speak(text) {
     if (!AppState.speechEnabled) return;
-    var utterance = new SpeechSynthesisUtterance(text);
-    window.speechSynthesis.speak(utterance);
+    if (!('speechSynthesis' in window) || !('SpeechSynthesisUtterance' in window)) return;
+    try {
+        var utterance = new SpeechSynthesisUtterance(text);
+        window.speechSynthesis.speak(utterance);
+    } catch(e) {
+        // Speech synthesis not supported or blocked
+    }
 }
 
 function playChime() {
+    ensureAudio();
     var ctx = AppState.audioCtx;
     if (!ctx) return;
     var osc = ctx.createOscillator();
