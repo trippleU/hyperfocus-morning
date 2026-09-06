@@ -56,6 +56,8 @@ function cacheDOM() {
     DOM.taskDurationLabel = document.getElementById('task-duration-label');
     DOM.taskProgressRing = document.getElementById('task-progress-ring');
     DOM.progressRingSvg = document.querySelector('.progress-ring');
+    DOM.ringPulseWrapper = document.getElementById('ring-pulse-wrapper');
+    DOM.ringGlowAura = document.getElementById('ring-glow-aura');
     DOM.ringContainer = document.querySelector('.ring-container');
     DOM.ringBg = document.querySelector('.ring-bg');
     
@@ -357,8 +359,11 @@ function updateTaskViewUI(nowTs) {
     
     // Reset all dynamic urgency classes before applying current state
     circle.classList.remove('ring-calm', 'ring-warn', 'ring-alert', 'ring-overdue');
-    if (DOM.progressRingSvg) {
-        DOM.progressRingSvg.classList.remove('ring-imminent', 'ring-imminent-fast', 'ring-overdue-container');
+    if (DOM.ringPulseWrapper) {
+        DOM.ringPulseWrapper.classList.remove('ring-imminent', 'ring-imminent-fast', 'ring-overdue-container');
+    }
+    if (DOM.ringGlowAura) {
+        DOM.ringGlowAura.classList.remove('aura-imminent', 'aura-imminent-fast', 'aura-overdue');
     }
     if (DOM.ringBg) {
         DOM.ringBg.classList.remove('ring-bg-overdue');
@@ -397,10 +402,12 @@ function updateTaskViewUI(nowTs) {
         
         // Imminent urgency stages: Final 60s & Final 20s
         if (secondsLeft <= 20) {
-            if (DOM.progressRingSvg) DOM.progressRingSvg.classList.add('ring-imminent-fast');
+            if (DOM.ringPulseWrapper) DOM.ringPulseWrapper.classList.add('ring-imminent-fast');
+            if (DOM.ringGlowAura) DOM.ringGlowAura.classList.add('aura-imminent-fast');
             DOM.taskCountdown.classList.add('text-imminent');
         } else if (secondsLeft <= 60) {
-            if (DOM.progressRingSvg) DOM.progressRingSvg.classList.add('ring-imminent');
+            if (DOM.ringPulseWrapper) DOM.ringPulseWrapper.classList.add('ring-imminent');
+            if (DOM.ringGlowAura) DOM.ringGlowAura.classList.add('aura-imminent');
         }
         
         // Audio heartbeat cue during imminent urgency (final 60s)
@@ -436,11 +443,15 @@ function updateTaskViewUI(nowTs) {
         
         DOM.taskDurationLabel.innerHTML = '<span class="badge-overdue">OVERDUE</span> / ' + task.durationMinutes + ':00';
         
-        // Keep the active circle at zero (fully elapsed) - no growing circle in overdue
-        circle.style.strokeDashoffset = circumference;
+        // Show full solid red ring when overdue - visible, bold, and framing the counter without growing
+        circle.style.strokeDashoffset = 0;
+        circle.classList.add('ring-alert');
         
-        if (DOM.progressRingSvg) {
-            DOM.progressRingSvg.classList.add('ring-overdue-container');
+        if (DOM.ringPulseWrapper) {
+            DOM.ringPulseWrapper.classList.add('ring-overdue-container');
+        }
+        if (DOM.ringGlowAura) {
+            DOM.ringGlowAura.classList.add('aura-overdue');
         }
         if (DOM.ringBg) {
             DOM.ringBg.classList.add('ring-bg-overdue');
@@ -629,7 +640,7 @@ function playHeartbeat(isFast) {
     
     var now = ctx.currentTime;
     
-    function playThump(time, baseFreq, gainPeak, duration) {
+    function playThump(time, baseFreq, endFreq, gainPeak, duration) {
         var osc = ctx.createOscillator();
         var gainNode = ctx.createGain();
         
@@ -637,31 +648,35 @@ function playHeartbeat(isFast) {
         osc.connect(gainNode);
         gainNode.connect(ctx.destination);
         
-        // Fast pitch drop produces a soft, organic acoustic thump rather than an artificial beep
+        // Frequencies tuned for TV speaker response:
+        // Flat TVs roll off frequencies below 80-90Hz.
+        // Starting around 160-185Hz and sweeping to 75-85Hz produces a deep, warm,
+        // audible chest thump through TV speakers without sounding like an electronic beep.
         osc.frequency.setValueAtTime(baseFreq, time);
-        osc.frequency.exponentialRampToValueAtTime(38, time + duration);
+        osc.frequency.exponentialRampToValueAtTime(endFreq, time + duration);
         
-        // Soft envelope: non-distressing, muffled heartbeat sound
+        // Boosted gain matching the completion chime volume
         gainNode.gain.setValueAtTime(0.001, time);
-        gainNode.gain.linearRampToValueAtTime(gainPeak, time + 0.015);
+        gainNode.gain.linearRampToValueAtTime(gainPeak, time + 0.018);
         gainNode.gain.exponentialRampToValueAtTime(0.001, time + duration);
         
         osc.start(time);
         osc.stop(time + duration);
     }
     
-    var gain1 = isFast ? 0.20 : 0.14;
-    var gain2 = isFast ? 0.13 : 0.09;
+    // Higher volume matching playChime (0.50)
+    var gain1 = isFast ? 0.65 : 0.52;
+    var gain2 = isFast ? 0.44 : 0.35;
     
-    // First beat: "lub" (deeper, ~95Hz dropping to ~38Hz)
-    playThump(now, 95, gain1, 0.09);
-    // Second beat: "dub" (~115Hz dropping to ~38Hz)
-    playThump(now + 0.13, 115, gain2, 0.07);
+    // First beat: "lub" (~160Hz dropping to 75Hz)
+    playThump(now, 160, 75, gain1, 0.11);
+    // Second beat: "dub" (~185Hz dropping to 85Hz)
+    playThump(now + 0.14, 185, 85, gain2, 0.09);
     
     if (isFast) {
-        // Second heartbeat pulse at +0.5s to align with the 0.5s visual heartbeat animation
-        playThump(now + 0.50, 100, gain1, 0.09);
-        playThump(now + 0.63, 120, gain2, 0.07);
+        // Second heartbeat cycle at +0.5s for the final 20s
+        playThump(now + 0.50, 165, 80, gain1, 0.11);
+        playThump(now + 0.64, 190, 90, gain2, 0.09);
     }
 }
 
@@ -671,10 +686,10 @@ function playTimeUpSound() {
     if (!ctx) return;
     
     var now = ctx.currentTime;
-    // Pleasant, non-distressing warm two-tone chime to announce time-up
+    // Pleasant, non-distressing warm two-tone chime at clear TV volume
     var notes = [
-        { f: 440.00, t: 0, d: 0.35, gain: 0.20 },   // A4
-        { f: 349.23, t: 0.22, d: 0.55, gain: 0.16 }  // F4
+        { f: 523.25, t: 0, d: 0.35, gain: 0.48 },    // C5
+        { f: 392.00, t: 0.22, d: 0.60, gain: 0.42 }  // G4
     ];
     
     notes.forEach(function(note) {
